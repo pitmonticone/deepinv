@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Training a reconstruction network. &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=61a4c737" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../../_static/logo.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "reg": ["{g\\left({#1}\\right)}", 1], "regname": "g", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1]}}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Image deblurring with custom deep explicit prior." href="demo_custom_prior.html" />
+    <link rel="prev" title="A tour of forward sensing operators" href="demo_physics_tour.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../../index.html">
+            
+              <img src="../../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.models.html">Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.pnp.html">PnP and RED algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.unfolded.html">Unfolded algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.sampling.html">Diffusion algorithms</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Examples</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html#basics">Basics</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="demo_lidar.html">Single photon lidar operator for depth ranging.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_pansharpening.html">Stacking and concatenating forward operators.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_dip.html">Reconstructing an image using the deep image prior.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_dataset.html">Creating your own dataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_physics.html">Creating a forward operator.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_physics_tour.html">A tour of forward sensing operators</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Training a reconstruction network.</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#setup-paths-for-data-loading-and-results">Setup paths for data loading and results.</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#load-base-image-datasets-and-degradation-operators">Load base image datasets and degradation operators.</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#define-forward-operator-and-generate-dataset">Define forward operator and generate dataset</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#set-up-the-reconstruction-network">Set up the reconstruction network</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#train-the-model">Train the model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#test-the-network">Test the network</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="demo_custom_prior.html">Image deblurring with custom deep explicit prior.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_loading.html">Saving and loading models</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#plug-and-play">Plug-and-Play</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#sampling">Sampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#self-supervised-learning">Self-Supervised Learning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#unfolded">Unfolded</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Examples</a></li>
+      <li class="breadcrumb-item active">Training a reconstruction network.</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/auto_examples/basics/demo_train_inpainting.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="sphx-glr-download-link-note admonition note">
+<p class="admonition-title">Note</p>
+<p><a class="reference internal" href="#sphx-glr-download-auto-examples-basics-demo-train-inpainting-py"><span class="std std-ref">Go to the end</span></a>
+to download the full example code</p>
+</div>
+<section class="sphx-glr-example-title" id="training-a-reconstruction-network">
+<span id="sphx-glr-auto-examples-basics-demo-train-inpainting-py"></span><h1>Training a reconstruction network.<a class="headerlink" href="#training-a-reconstruction-network" title="Link to this heading"></a></h1>
+<p>This example shows how to train a simple reconstruction network for an image
+inpainting inverse problem.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">deepinv</span> <span class="k">as</span> <span class="nn">dinv</span>
+<span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <a href="https://pytorch.org/docs/2.0/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class"><span class="n">DataLoader</span></a>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <a href="https://docs.python.org/3.4/library/pathlib.html#pathlib.Path" title="pathlib.Path" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class"><span class="n">Path</span></a>
+<span class="kn">from</span> <span class="nn">torchvision</span> <span class="kn">import</span> <span class="n">transforms</span>
+<span class="kn">from</span> <span class="nn">deepinv.utils.demo</span> <span class="kn">import</span> <span class="n">load_dataset</span>
+<span class="kn">from</span> <span class="nn">deepinv.training_utils</span> <span class="kn">import</span> <span class="n">train</span><span class="p">,</span> <span class="n">test</span>
+</pre></div>
+</div>
+<section id="setup-paths-for-data-loading-and-results">
+<h2>Setup paths for data loading and results.<a class="headerlink" href="#setup-paths-for-data-loading-and-results" title="Link to this heading"></a></h2>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://docs.python.org/3.4/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">BASE_DIR</span></a> <span class="o">=</span> <a href="https://docs.python.org/3.4/library/pathlib.html#pathlib.Path" title="pathlib.Path" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class"><span class="n">Path</span></a><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+<a href="https://docs.python.org/3.4/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ORIGINAL_DATA_DIR</span></a> <span class="o">=</span> <a href="https://docs.python.org/3.4/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">BASE_DIR</span></a> <span class="o">/</span> <span class="s2">&quot;datasets&quot;</span>
+<a href="https://docs.python.org/3.4/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">DATA_DIR</span></a> <span class="o">=</span> <a href="https://docs.python.org/3.4/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">BASE_DIR</span></a> <span class="o">/</span> <span class="s2">&quot;measurements&quot;</span>
+<a href="https://docs.python.org/3.4/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">RESULTS_DIR</span></a> <span class="o">=</span> <a href="https://docs.python.org/3.4/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">BASE_DIR</span></a> <span class="o">/</span> <span class="s2">&quot;results&quot;</span>
+<a href="https://docs.python.org/3.4/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">DEG_DIR</span></a> <span class="o">=</span> <a href="https://docs.python.org/3.4/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">BASE_DIR</span></a> <span class="o">/</span> <span class="s2">&quot;degradations&quot;</span>
+<a href="https://docs.python.org/3.4/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">CKPT_DIR</span></a> <span class="o">=</span> <a href="https://docs.python.org/3.4/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">BASE_DIR</span></a> <span class="o">/</span> <span class="s2">&quot;ckpts&quot;</span>
+
+<span class="c1"># Set the global random seed from pytorch to ensure reproducibility of the example.</span>
+<a href="https://pytorch.org/docs/2.0/generated/torch.manual_seed.html#torch.manual_seed" title="torch.manual_seed" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span></a><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+<a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">get_freer_gpu</span><span class="p">()</span> <span class="k">if</span> <a href="https://pytorch.org/docs/2.0/generated/torch.cuda.is_available.html#torch.cuda.is_available" title="torch.cuda.is_available" class="sphx-glr-backref-module-torch-cuda sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span></a><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span>
+</pre></div>
+</div>
+</section>
+<section id="load-base-image-datasets-and-degradation-operators">
+<h2>Load base image datasets and degradation operators.<a class="headerlink" href="#load-base-image-datasets-and-degradation-operators" title="Link to this heading"></a></h2>
+<p>In this example, we use the CBSD68 dataset for training and the set3c dataset for testing.
+We work with images of size 32x32 if no GPU is available, else 128x128.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">operation</span></a> <span class="o">=</span> <span class="s2">&quot;inpainting&quot;</span>
+<a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">train_dataset_name</span></a> <span class="o">=</span> <span class="s2">&quot;CBSD68&quot;</span>
+<a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">test_dataset_name</span></a> <span class="o">=</span> <span class="s2">&quot;set3c&quot;</span>
+<a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">img_size</span></a> <span class="o">=</span> <span class="mi">128</span> <span class="k">if</span> <a href="https://pytorch.org/docs/2.0/generated/torch.cuda.is_available.html#torch.cuda.is_available" title="torch.cuda.is_available" class="sphx-glr-backref-module-torch-cuda sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span></a><span class="p">()</span> <span class="k">else</span> <span class="mi">32</span>
+
+<span class="n">test_transform</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">(</span>
+    <span class="p">[</span><a href="https://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">transforms</span><span class="o">.</span><span class="n">CenterCrop</span></a><span class="p">(</span><a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">img_size</span></a><span class="p">),</span> <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">()]</span>
+<span class="p">)</span>
+<span class="n">train_transform</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">(</span>
+    <span class="p">[</span><a href="https://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">transforms</span><span class="o">.</span><span class="n">RandomCrop</span></a><span class="p">(</span><a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">img_size</span></a><span class="p">),</span> <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">()]</span>
+<span class="p">)</span>
+
+<span class="n">train_dataset</span> <span class="o">=</span> <span class="n">load_dataset</span><span class="p">(</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">train_dataset_name</span></a><span class="p">,</span> <a href="https://docs.python.org/3.4/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ORIGINAL_DATA_DIR</span></a><span class="p">,</span> <span class="n">train_transform</span><span class="p">)</span>
+<span class="n">test_dataset</span> <span class="o">=</span> <span class="n">load_dataset</span><span class="p">(</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">test_dataset_name</span></a><span class="p">,</span> <a href="https://docs.python.org/3.4/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ORIGINAL_DATA_DIR</span></a><span class="p">,</span> <span class="n">test_transform</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Downloading datasets/CBSD68.zip
+
+  0%|          | 0.00/19.8M [00:00&lt;?, ?iB/s]
+ 40%|████      | 7.98M/19.8M [00:00&lt;00:00, 79.8MiB/s]
+ 83%|████████▎ | 16.3M/19.8M [00:00&lt;00:00, 82.0MiB/s]
+100%|██████████| 19.8M/19.8M [00:00&lt;00:00, 81.8MiB/s]
+CBSD68 dataset downloaded in datasets
+</pre></div>
+</div>
+</section>
+<section id="define-forward-operator-and-generate-dataset">
+<h2>Define forward operator and generate dataset<a class="headerlink" href="#define-forward-operator-and-generate-dataset" title="Link to this heading"></a></h2>
+<p>We define an inpainting operator that randomly masks pixels with probability 0.5.</p>
+<p>A dataset of pairs of measurements and ground truth images is then generated using the
+<a class="reference internal" href="../../stubs/deepinv.datasets.generate_dataset.html#deepinv.datasets.generate_dataset" title="deepinv.datasets.generate_dataset"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.datasets.generate_dataset()</span></code></a> function.</p>
+<p>Once the dataset is generated, we can load it using the <a class="reference internal" href="../../stubs/deepinv.datasets.HDF5Dataset.html#deepinv.datasets.HDF5Dataset" title="deepinv.datasets.HDF5Dataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.datasets.HDF5Dataset</span></code></a> class.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">n_channels</span></a> <span class="o">=</span> <span class="mi">3</span>  <span class="c1"># 3 for color images, 1 for gray-scale images</span>
+<a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">probability_mask</span></a> <span class="o">=</span> <span class="mf">0.5</span>  <span class="c1"># probability to mask pixel</span>
+
+<span class="c1"># Generate inpainting operator</span>
+<span class="n">physics</span> <span class="o">=</span> <a href="https://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">Inpainting</span></a><span class="p">(</span>
+    <span class="p">(</span><a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">n_channels</span></a><span class="p">,</span> <a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">img_size</span></a><span class="p">,</span> <a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">img_size</span></a><span class="p">),</span> <span class="n">mask</span><span class="o">=</span><a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">probability_mask</span></a><span class="p">,</span> <a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a>
+<span class="p">)</span>
+
+
+<span class="c1"># Use parallel dataloader if using a GPU to fasten training,</span>
+<span class="c1"># otherwise, as all computes are on CPU, use synchronous data loading.</span>
+<a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">num_workers</span></a> <span class="o">=</span> <span class="mi">4</span> <span class="k">if</span> <a href="https://pytorch.org/docs/2.0/generated/torch.cuda.is_available.html#torch.cuda.is_available" title="torch.cuda.is_available" class="sphx-glr-backref-module-torch-cuda sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span></a><span class="p">()</span> <span class="k">else</span> <span class="mi">0</span>
+<a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">n_images_max</span></a> <span class="o">=</span> <span class="p">(</span>
+    <span class="mi">1000</span> <span class="k">if</span> <a href="https://pytorch.org/docs/2.0/generated/torch.cuda.is_available.html#torch.cuda.is_available" title="torch.cuda.is_available" class="sphx-glr-backref-module-torch-cuda sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span></a><span class="p">()</span> <span class="k">else</span> <span class="mi">50</span>
+<span class="p">)</span>  <span class="c1"># maximal number of images used for training</span>
+<a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">my_dataset_name</span></a> <span class="o">=</span> <span class="s2">&quot;demo_training_inpainting&quot;</span>
+<a href="https://docs.python.org/3.4/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">measurement_dir</span></a> <span class="o">=</span> <a href="https://docs.python.org/3.4/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">DATA_DIR</span></a> <span class="o">/</span> <a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">train_dataset_name</span></a> <span class="o">/</span> <a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">operation</span></a>
+<a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">deepinv_datasets_path</span></a> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">datasets</span><span class="o">.</span><span class="n">generate_dataset</span><span class="p">(</span>
+    <span class="n">train_dataset</span><span class="o">=</span><span class="n">train_dataset</span><span class="p">,</span>
+    <span class="n">test_dataset</span><span class="o">=</span><span class="n">test_dataset</span><span class="p">,</span>
+    <span class="n">physics</span><span class="o">=</span><span class="n">physics</span><span class="p">,</span>
+    <a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">,</span>
+    <span class="n">save_dir</span><span class="o">=</span><a href="https://docs.python.org/3.4/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">measurement_dir</span></a><span class="p">,</span>
+    <span class="n">train_datapoints</span><span class="o">=</span><a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">n_images_max</span></a><span class="p">,</span>
+    <a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">num_workers</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">num_workers</span></a><span class="p">,</span>
+    <span class="n">dataset_filename</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">my_dataset_name</span></a><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">train_dataset</span> <span class="o">=</span> <a href="https://pytorch.org/docs/2.0/data.html#torch.utils.data.Dataset" title="torch.utils.data.Dataset" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">datasets</span><span class="o">.</span><span class="n">HDF5Dataset</span></a><span class="p">(</span><span class="n">path</span><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">deepinv_datasets_path</span></a><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">test_dataset</span> <span class="o">=</span> <a href="https://pytorch.org/docs/2.0/data.html#torch.utils.data.Dataset" title="torch.utils.data.Dataset" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">datasets</span><span class="o">.</span><span class="n">HDF5Dataset</span></a><span class="p">(</span><span class="n">path</span><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">deepinv_datasets_path</span></a><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+
+<a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">train_batch_size</span></a> <span class="o">=</span> <span class="mi">32</span> <span class="k">if</span> <a href="https://pytorch.org/docs/2.0/generated/torch.cuda.is_available.html#torch.cuda.is_available" title="torch.cuda.is_available" class="sphx-glr-backref-module-torch-cuda sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span></a><span class="p">()</span> <span class="k">else</span> <span class="mi">1</span>
+<a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">test_batch_size</span></a> <span class="o">=</span> <span class="mi">32</span> <span class="k">if</span> <a href="https://pytorch.org/docs/2.0/generated/torch.cuda.is_available.html#torch.cuda.is_available" title="torch.cuda.is_available" class="sphx-glr-backref-module-torch-cuda sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span></a><span class="p">()</span> <span class="k">else</span> <span class="mi">1</span>
+
+<a href="https://pytorch.org/docs/2.0/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">train_dataloader</span></a> <span class="o">=</span> <a href="https://pytorch.org/docs/2.0/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class"><span class="n">DataLoader</span></a><span class="p">(</span>
+    <span class="n">train_dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">train_batch_size</span></a><span class="p">,</span> <a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">num_workers</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">num_workers</span></a><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+<a href="https://pytorch.org/docs/2.0/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">test_dataloader</span></a> <span class="o">=</span> <a href="https://pytorch.org/docs/2.0/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class"><span class="n">DataLoader</span></a><span class="p">(</span>
+    <span class="n">test_dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">test_batch_size</span></a><span class="p">,</span> <a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">num_workers</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">num_workers</span></a><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Computing train measurement vectors from base dataset...
+
+  0%|          | 0/1 [00:00&lt;?, ?it/s]
+100%|██████████| 1/1 [00:00&lt;00:00,  5.52it/s]
+100%|██████████| 1/1 [00:00&lt;00:00,  5.51it/s]
+Computing test measurement vectors from base dataset...
+
+  0%|          | 0/1 [00:00&lt;?, ?it/s]
+100%|██████████| 1/1 [00:00&lt;00:00, 136.21it/s]
+Dataset has been saved in measurements/CBSD68/inpainting
+</pre></div>
+</div>
+</section>
+<section id="set-up-the-reconstruction-network">
+<h2>Set up the reconstruction network<a class="headerlink" href="#set-up-the-reconstruction-network" title="Link to this heading"></a></h2>
+<p>We use a simple inversion architecture of the form</p>
+<blockquote>
+<div><div class="math notranslate nohighlight">
+\[f_{\theta}(y) = \phi_{\theta}(A^{\top}(y))\]</div>
+</div></blockquote>
+<p>where the linear reconstruction <span class="math notranslate nohighlight">\(A^{\top}y\)</span> is post-processed by a U-Net network <span class="math notranslate nohighlight">\(\phi_{\theta}\)</span> is a
+neural network with trainable parameters <span class="math notranslate nohighlight">\(\theta\)</span>.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="c1"># choose backbone model</span>
+<span class="n">backbone</span> <span class="o">=</span> <a href="https://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">UNet</span></a><span class="p">(</span>
+    <span class="n">in_channels</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">out_channels</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">scales</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">batch_norm</span><span class="o">=</span><span class="kc">False</span>
+<span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+
+<span class="c1"># choose a reconstruction architecture</span>
+<span class="n">model</span> <span class="o">=</span> <a href="https://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">ArtifactRemoval</span></a><span class="p">(</span><span class="n">backbone</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="train-the-model">
+<h2>Train the model<a class="headerlink" href="#train-the-model" title="Link to this heading"></a></h2>
+<p>We train the model using the <code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.training_utils.train()</span></code> function.</p>
+<p>We perform supervised learning and use the mean squared error as loss function. This can be easily done using the
+<a class="reference internal" href="../../stubs/deepinv.loss.SupLoss.html#deepinv.loss.SupLoss" title="deepinv.loss.SupLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.SupLoss</span></code></a> class.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In this example, we only train for a few epochs to keep the training time short.
+For a good reconstruction quality, we recommend to train for at least 100 epochs.</p>
+</div>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">epochs</span></a> <span class="o">=</span> <span class="mi">4</span>  <span class="c1"># choose training epochs</span>
+<a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">learning_rate</span></a> <span class="o">=</span> <span class="mf">5e-4</span>
+
+<a href="https://docs.python.org/3.4/library/functions.html#bool" title="builtins.bool" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">verbose</span></a> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># print training information</span>
+<a href="https://docs.python.org/3.4/library/functions.html#bool" title="builtins.bool" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">wandb_vis</span></a> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># plot curves and images in Weight&amp;Bias</span>
+
+<span class="c1"># choose training losses</span>
+<span class="n">losses</span> <span class="o">=</span> <a href="https://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">loss</span><span class="o">.</span><span class="n">SupLoss</span></a><span class="p">(</span><span class="n">metric</span><span class="o">=</span><span class="n">dinv</span><span class="o">.</span><span class="n">metric</span><span class="o">.</span><span class="n">mse</span><span class="p">())</span>
+
+<span class="c1"># choose optimizer and scheduler</span>
+<a href="https://pytorch.org/docs/2.0/generated/torch.optim.Adam.html#torch.optim.Adam" title="torch.optim.Adam" class="sphx-glr-backref-module-torch-optim sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">optimizer</span></a> <span class="o">=</span> <a href="https://pytorch.org/docs/2.0/generated/torch.optim.Adam.html#torch.optim.Adam" title="torch.optim.Adam" class="sphx-glr-backref-module-torch-optim sphx-glr-backref-type-py-class"><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span></a><span class="p">(</span><a href="https://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module.parameters" title="torch.nn.Module.parameters" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-method"><span class="n">model</span><span class="o">.</span><span class="n">parameters</span></a><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">learning_rate</span></a><span class="p">,</span> <span class="n">weight_decay</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">)</span>
+<a href="https://pytorch.org/docs/2.0/generated/torch.optim.lr_scheduler.StepLR.html#torch.optim.lr_scheduler.StepLR" title="torch.optim.lr_scheduler.StepLR" class="sphx-glr-backref-module-torch-optim-lr_scheduler sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">scheduler</span></a> <span class="o">=</span> <a href="https://pytorch.org/docs/2.0/generated/torch.optim.lr_scheduler.StepLR.html#torch.optim.lr_scheduler.StepLR" title="torch.optim.lr_scheduler.StepLR" class="sphx-glr-backref-module-torch-optim-lr_scheduler sphx-glr-backref-type-py-class"><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">StepLR</span></a><span class="p">(</span><a href="https://pytorch.org/docs/2.0/generated/torch.optim.Adam.html#torch.optim.Adam" title="torch.optim.Adam" class="sphx-glr-backref-module-torch-optim sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">optimizer</span></a><span class="p">,</span> <span class="n">step_size</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">epochs</span></a> <span class="o">*</span> <span class="mf">0.8</span><span class="p">))</span>
+
+<span class="n">train</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+    <a href="https://pytorch.org/docs/2.0/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">train_dataloader</span></a><span class="o">=</span><a href="https://pytorch.org/docs/2.0/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">train_dataloader</span></a><span class="p">,</span>
+    <span class="n">eval_dataloader</span><span class="o">=</span><a href="https://pytorch.org/docs/2.0/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">test_dataloader</span></a><span class="p">,</span>
+    <a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">epochs</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">epochs</span></a><span class="p">,</span>
+    <a href="https://pytorch.org/docs/2.0/generated/torch.optim.lr_scheduler.StepLR.html#torch.optim.lr_scheduler.StepLR" title="torch.optim.lr_scheduler.StepLR" class="sphx-glr-backref-module-torch-optim-lr_scheduler sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">scheduler</span></a><span class="o">=</span><a href="https://pytorch.org/docs/2.0/generated/torch.optim.lr_scheduler.StepLR.html#torch.optim.lr_scheduler.StepLR" title="torch.optim.lr_scheduler.StepLR" class="sphx-glr-backref-module-torch-optim-lr_scheduler sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">scheduler</span></a><span class="p">,</span>
+    <span class="n">losses</span><span class="o">=</span><span class="n">losses</span><span class="p">,</span>
+    <span class="n">physics</span><span class="o">=</span><span class="n">physics</span><span class="p">,</span>
+    <a href="https://pytorch.org/docs/2.0/generated/torch.optim.Adam.html#torch.optim.Adam" title="torch.optim.Adam" class="sphx-glr-backref-module-torch-optim sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">optimizer</span></a><span class="o">=</span><a href="https://pytorch.org/docs/2.0/generated/torch.optim.Adam.html#torch.optim.Adam" title="torch.optim.Adam" class="sphx-glr-backref-module-torch-optim sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">optimizer</span></a><span class="p">,</span>
+    <a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">,</span>
+    <span class="n">save_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><a href="https://docs.python.org/3.4/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">CKPT_DIR</span></a> <span class="o">/</span> <a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">operation</span></a><span class="p">),</span>
+    <a href="https://docs.python.org/3.4/library/functions.html#bool" title="builtins.bool" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">verbose</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/functions.html#bool" title="builtins.bool" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">verbose</span></a><span class="p">,</span>
+    <a href="https://docs.python.org/3.4/library/functions.html#bool" title="builtins.bool" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">wandb_vis</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/functions.html#bool" title="builtins.bool" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">wandb_vis</span></a><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>The model has 2067779 trainable parameters
+
+  0%|          | 0/50 [00:00&lt;?, ?it/s]
+Epoch 1:   0%|          | 0/50 [00:00&lt;?, ?it/s]
+Epoch 1:   0%|          | 0/50 [00:00&lt;?, ?it/s, eval_psnr=6.59, total_loss=0.114, train_psnr=9.43]
+Epoch 1:   0%|          | 0/50 [00:00&lt;?, ?it/s, eval_psnr=6.59, total_loss=0.114, train_psnr=9.43]
+Epoch 1:   0%|          | 0/50 [00:00&lt;?, ?it/s, eval_psnr=6.59, total_loss=0.0828, train_psnr=11.1]
+Epoch 1:   0%|          | 0/50 [00:00&lt;?, ?it/s, eval_psnr=6.59, total_loss=0.0828, train_psnr=11.1]
+Epoch 1:   0%|          | 0/50 [00:00&lt;?, ?it/s, eval_psnr=6.59, total_loss=0.0921, train_psnr=10.6]
+Epoch 1:   6%|▌         | 3/50 [00:00&lt;00:01, 27.20it/s, eval_psnr=6.59, total_loss=0.0921, train_psnr=10.6]
+Epoch 1:   6%|▌         | 3/50 [00:00&lt;00:01, 27.20it/s, eval_psnr=6.59, total_loss=0.0921, train_psnr=10.6]
+Epoch 1:   6%|▌         | 3/50 [00:00&lt;00:01, 27.20it/s, eval_psnr=6.59, total_loss=0.0865, train_psnr=10.9]
+Epoch 1:   6%|▌         | 3/50 [00:00&lt;00:01, 27.20it/s, eval_psnr=6.59, total_loss=0.0865, train_psnr=10.9]
+Epoch 1:   6%|▌         | 3/50 [00:00&lt;00:01, 27.20it/s, eval_psnr=6.59, total_loss=0.074, train_psnr=11.9]
+Epoch 1:   6%|▌         | 3/50 [00:00&lt;00:01, 27.20it/s, eval_psnr=6.59, total_loss=0.074, train_psnr=11.9]
+Epoch 1:   6%|▌         | 3/50 [00:00&lt;00:01, 27.20it/s, eval_psnr=6.59, total_loss=0.0713, train_psnr=12]
+Epoch 1:   6%|▌         | 3/50 [00:00&lt;00:01, 27.20it/s, eval_psnr=6.59, total_loss=0.0713, train_psnr=12]
+Epoch 1:   6%|▌         | 3/50 [00:00&lt;00:01, 27.20it/s, eval_psnr=6.59, total_loss=0.0625, train_psnr=13.2]
+Epoch 1:  14%|█▍        | 7/50 [00:00&lt;00:01, 30.02it/s, eval_psnr=6.59, total_loss=0.0625, train_psnr=13.2]
+Epoch 1:  14%|█▍        | 7/50 [00:00&lt;00:01, 30.02it/s, eval_psnr=6.59, total_loss=0.0625, train_psnr=13.2]
+Epoch 1:  14%|█▍        | 7/50 [00:00&lt;00:01, 30.02it/s, eval_psnr=6.59, total_loss=0.0856, train_psnr=12.3]
+Epoch 1:  14%|█▍        | 7/50 [00:00&lt;00:01, 30.02it/s, eval_psnr=6.59, total_loss=0.0856, train_psnr=12.3]
+Epoch 1:  14%|█▍        | 7/50 [00:00&lt;00:01, 30.02it/s, eval_psnr=6.59, total_loss=0.0786, train_psnr=12.7]
+Epoch 1:  14%|█▍        | 7/50 [00:00&lt;00:01, 30.02it/s, eval_psnr=6.59, total_loss=0.0786, train_psnr=12.7]
+Epoch 1:  14%|█▍        | 7/50 [00:00&lt;00:01, 30.02it/s, eval_psnr=6.59, total_loss=0.0747, train_psnr=12.9]
+Epoch 1:  14%|█▍        | 7/50 [00:00&lt;00:01, 30.02it/s, eval_psnr=6.59, total_loss=0.0747, train_psnr=12.9]
+Epoch 1:  14%|█▍        | 7/50 [00:00&lt;00:01, 30.02it/s, eval_psnr=6.59, total_loss=0.0698, train_psnr=13.2]
+Epoch 1:  22%|██▏       | 11/50 [00:00&lt;00:01, 30.94it/s, eval_psnr=6.59, total_loss=0.0698, train_psnr=13.2]
+Epoch 1:  22%|██▏       | 11/50 [00:00&lt;00:01, 30.94it/s, eval_psnr=6.59, total_loss=0.0698, train_psnr=13.2]
+Epoch 1:  22%|██▏       | 11/50 [00:00&lt;00:01, 30.94it/s, eval_psnr=6.59, total_loss=0.0718, train_psnr=13]
+Epoch 1:  22%|██▏       | 11/50 [00:00&lt;00:01, 30.94it/s, eval_psnr=6.59, total_loss=0.0718, train_psnr=13]
+Epoch 1:  22%|██▏       | 11/50 [00:00&lt;00:01, 30.94it/s, eval_psnr=6.59, total_loss=0.0681, train_psnr=13.2]
+Epoch 1:  22%|██▏       | 11/50 [00:00&lt;00:01, 30.94it/s, eval_psnr=6.59, total_loss=0.0681, train_psnr=13.2]
+Epoch 1:  22%|██▏       | 11/50 [00:00&lt;00:01, 30.94it/s, eval_psnr=6.59, total_loss=0.0697, train_psnr=13]
+Epoch 1:  22%|██▏       | 11/50 [00:00&lt;00:01, 30.94it/s, eval_psnr=6.59, total_loss=0.0697, train_psnr=13]
+Epoch 1:  22%|██▏       | 11/50 [00:00&lt;00:01, 30.94it/s, eval_psnr=6.59, total_loss=0.0673, train_psnr=13.1]
+Epoch 1:  30%|███       | 15/50 [00:00&lt;00:01, 31.47it/s, eval_psnr=6.59, total_loss=0.0673, train_psnr=13.1]
+Epoch 1:  30%|███       | 15/50 [00:00&lt;00:01, 31.47it/s, eval_psnr=6.59, total_loss=0.0673, train_psnr=13.1]
+Epoch 1:  30%|███       | 15/50 [00:00&lt;00:01, 31.47it/s, eval_psnr=6.59, total_loss=0.064, train_psnr=13.5]
+Epoch 1:  30%|███       | 15/50 [00:00&lt;00:01, 31.47it/s, eval_psnr=6.59, total_loss=0.064, train_psnr=13.5]
+Epoch 1:  30%|███       | 15/50 [00:00&lt;00:01, 31.47it/s, eval_psnr=6.59, total_loss=0.0643, train_psnr=13.4]
+Epoch 1:  30%|███       | 15/50 [00:00&lt;00:01, 31.47it/s, eval_psnr=6.59, total_loss=0.0643, train_psnr=13.4]
+Epoch 1:  30%|███       | 15/50 [00:00&lt;00:01, 31.47it/s, eval_psnr=6.59, total_loss=0.0654, train_psnr=13.2]
+Epoch 1:  30%|███       | 15/50 [00:00&lt;00:01, 31.47it/s, eval_psnr=6.59, total_loss=0.0654, train_psnr=13.2]
+Epoch 1:  30%|███       | 15/50 [00:00&lt;00:01, 31.47it/s, eval_psnr=6.59, total_loss=0.0632, train_psnr=13.4]
+Epoch 1:  38%|███▊      | 19/50 [00:00&lt;00:00, 31.76it/s, eval_psnr=6.59, total_loss=0.0632, train_psnr=13.4]
+Epoch 1:  38%|███▊      | 19/50 [00:00&lt;00:00, 31.76it/s, eval_psnr=6.59, total_loss=0.0632, train_psnr=13.4]
+Epoch 1:  38%|███▊      | 19/50 [00:00&lt;00:00, 31.76it/s, eval_psnr=6.59, total_loss=0.0617, train_psnr=13.5]
+Epoch 1:  38%|███▊      | 19/50 [00:00&lt;00:00, 31.76it/s, eval_psnr=6.59, total_loss=0.0617, train_psnr=13.5]
+Epoch 1:  38%|███▊      | 19/50 [00:00&lt;00:00, 31.76it/s, eval_psnr=6.59, total_loss=0.071, train_psnr=13.1]
+Epoch 1:  38%|███▊      | 19/50 [00:00&lt;00:00, 31.76it/s, eval_psnr=6.59, total_loss=0.071, train_psnr=13.1]
+Epoch 1:  38%|███▊      | 19/50 [00:00&lt;00:00, 31.76it/s, eval_psnr=6.59, total_loss=0.0701, train_psnr=13.1]
+Epoch 1:  38%|███▊      | 19/50 [00:00&lt;00:00, 31.76it/s, eval_psnr=6.59, total_loss=0.0701, train_psnr=13.1]
+Epoch 1:  38%|███▊      | 19/50 [00:00&lt;00:00, 31.76it/s, eval_psnr=6.59, total_loss=0.0728, train_psnr=12.9]
+Epoch 1:  46%|████▌     | 23/50 [00:00&lt;00:00, 31.98it/s, eval_psnr=6.59, total_loss=0.0728, train_psnr=12.9]
+Epoch 1:  46%|████▌     | 23/50 [00:00&lt;00:00, 31.98it/s, eval_psnr=6.59, total_loss=0.0728, train_psnr=12.9]
+Epoch 1:  46%|████▌     | 23/50 [00:00&lt;00:00, 31.98it/s, eval_psnr=6.59, total_loss=0.0724, train_psnr=12.9]
+Epoch 1:  46%|████▌     | 23/50 [00:00&lt;00:00, 31.98it/s, eval_psnr=6.59, total_loss=0.0724, train_psnr=12.9]
+Epoch 1:  46%|████▌     | 23/50 [00:00&lt;00:00, 31.98it/s, eval_psnr=6.59, total_loss=0.0725, train_psnr=12.8]
+Epoch 1:  46%|████▌     | 23/50 [00:00&lt;00:00, 31.98it/s, eval_psnr=6.59, total_loss=0.0725, train_psnr=12.8]
+Epoch 1:  46%|████▌     | 23/50 [00:00&lt;00:00, 31.98it/s, eval_psnr=6.59, total_loss=0.0709, train_psnr=12.9]
+Epoch 1:  46%|████▌     | 23/50 [00:00&lt;00:00, 31.98it/s, eval_psnr=6.59, total_loss=0.0709, train_psnr=12.9]
+Epoch 1:  46%|████▌     | 23/50 [00:00&lt;00:00, 31.98it/s, eval_psnr=6.59, total_loss=0.0689, train_psnr=13.1]
+Epoch 1:  54%|█████▍    | 27/50 [00:00&lt;00:00, 31.93it/s, eval_psnr=6.59, total_loss=0.0689, train_psnr=13.1]
+Epoch 1:  54%|█████▍    | 27/50 [00:00&lt;00:00, 31.93it/s, eval_psnr=6.59, total_loss=0.0689, train_psnr=13.1]
+Epoch 1:  54%|█████▍    | 27/50 [00:00&lt;00:00, 31.93it/s, eval_psnr=6.59, total_loss=0.0691, train_psnr=13]
+Epoch 1:  54%|█████▍    | 27/50 [00:00&lt;00:00, 31.93it/s, eval_psnr=6.59, total_loss=0.0691, train_psnr=13]
+Epoch 1:  54%|█████▍    | 27/50 [00:00&lt;00:00, 31.93it/s, eval_psnr=6.59, total_loss=0.0688, train_psnr=13]
+Epoch 1:  54%|█████▍    | 27/50 [00:00&lt;00:00, 31.93it/s, eval_psnr=6.59, total_loss=0.0688, train_psnr=13]
+Epoch 1:  54%|█████▍    | 27/50 [00:00&lt;00:00, 31.93it/s, eval_psnr=6.59, total_loss=0.0684, train_psnr=13]
+Epoch 1:  54%|█████▍    | 27/50 [00:00&lt;00:00, 31.93it/s, eval_psnr=6.59, total_loss=0.0684, train_psnr=13]
+Epoch 1:  54%|█████▍    | 27/50 [00:00&lt;00:00, 31.93it/s, eval_psnr=6.59, total_loss=0.0683, train_psnr=12.9]
+Epoch 1:  62%|██████▏   | 31/50 [00:00&lt;00:00, 31.99it/s, eval_psnr=6.59, total_loss=0.0683, train_psnr=12.9]
+Epoch 1:  62%|██████▏   | 31/50 [00:00&lt;00:00, 31.99it/s, eval_psnr=6.59, total_loss=0.0683, train_psnr=12.9]
+Epoch 1:  62%|██████▏   | 31/50 [00:01&lt;00:00, 31.99it/s, eval_psnr=6.59, total_loss=0.0675, train_psnr=13]
+Epoch 1:  62%|██████▏   | 31/50 [00:01&lt;00:00, 31.99it/s, eval_psnr=6.59, total_loss=0.0675, train_psnr=13]
+Epoch 1:  62%|██████▏   | 31/50 [00:01&lt;00:00, 31.99it/s, eval_psnr=6.59, total_loss=0.066, train_psnr=13.1]
+Epoch 1:  62%|██████▏   | 31/50 [00:01&lt;00:00, 31.99it/s, eval_psnr=6.59, total_loss=0.066, train_psnr=13.1]
+Epoch 1:  62%|██████▏   | 31/50 [00:01&lt;00:00, 31.99it/s, eval_psnr=6.59, total_loss=0.0643, train_psnr=13.3]
+Epoch 1:  62%|██████▏   | 31/50 [00:01&lt;00:00, 31.99it/s, eval_psnr=6.59, total_loss=0.0643, train_psnr=13.3]
+Epoch 1:  62%|██████▏   | 31/50 [00:01&lt;00:00, 31.99it/s, eval_psnr=6.59, total_loss=0.0638, train_psnr=13.3]
+Epoch 1:  70%|███████   | 35/50 [00:01&lt;00:00, 31.87it/s, eval_psnr=6.59, total_loss=0.0638, train_psnr=13.3]
+Epoch 1:  70%|███████   | 35/50 [00:01&lt;00:00, 31.87it/s, eval_psnr=6.59, total_loss=0.0638, train_psnr=13.3]
+Epoch 1:  70%|███████   | 35/50 [00:01&lt;00:00, 31.87it/s, eval_psnr=6.59, total_loss=0.0639, train_psnr=13.3]
+Epoch 1:  70%|███████   | 35/50 [00:01&lt;00:00, 31.87it/s, eval_psnr=6.59, total_loss=0.0639, train_psnr=13.3]
+Epoch 1:  70%|███████   | 35/50 [00:01&lt;00:00, 31.87it/s, eval_psnr=6.59, total_loss=0.0635, train_psnr=13.3]
+Epoch 1:  70%|███████   | 35/50 [00:01&lt;00:00, 31.87it/s, eval_psnr=6.59, total_loss=0.0635, train_psnr=13.3]
+Epoch 1:  70%|███████   | 35/50 [00:01&lt;00:00, 31.87it/s, eval_psnr=6.59, total_loss=0.0644, train_psnr=13.2]
+Epoch 1:  70%|███████   | 35/50 [00:01&lt;00:00, 31.87it/s, eval_psnr=6.59, total_loss=0.0644, train_psnr=13.2]
+Epoch 1:  70%|███████   | 35/50 [00:01&lt;00:00, 31.87it/s, eval_psnr=6.59, total_loss=0.0634, train_psnr=13.2]
+Epoch 1:  78%|███████▊  | 39/50 [00:01&lt;00:00, 31.99it/s, eval_psnr=6.59, total_loss=0.0634, train_psnr=13.2]
+Epoch 1:  78%|███████▊  | 39/50 [00:01&lt;00:00, 31.99it/s, eval_psnr=6.59, total_loss=0.0634, train_psnr=13.2]
+Epoch 1:  78%|███████▊  | 39/50 [00:01&lt;00:00, 31.99it/s, eval_psnr=6.59, total_loss=0.062, train_psnr=13.4]
+Epoch 1:  78%|███████▊  | 39/50 [00:01&lt;00:00, 31.99it/s, eval_psnr=6.59, total_loss=0.062, train_psnr=13.4]
+Epoch 1:  78%|███████▊  | 39/50 [00:01&lt;00:00, 31.99it/s, eval_psnr=6.59, total_loss=0.0613, train_psnr=13.5]
+Epoch 1:  78%|███████▊  | 39/50 [00:01&lt;00:00, 31.99it/s, eval_psnr=6.59, total_loss=0.0613, train_psnr=13.5]
+Epoch 1:  78%|███████▊  | 39/50 [00:01&lt;00:00, 31.99it/s, eval_psnr=6.59, total_loss=0.063, train_psnr=13.4]
+Epoch 1:  78%|███████▊  | 39/50 [00:01&lt;00:00, 31.99it/s, eval_psnr=6.59, total_loss=0.063, train_psnr=13.4]
+Epoch 1:  78%|███████▊  | 39/50 [00:01&lt;00:00, 31.99it/s, eval_psnr=6.59, total_loss=0.0637, train_psnr=13.3]
+Epoch 1:  86%|████████▌ | 43/50 [00:01&lt;00:00, 32.05it/s, eval_psnr=6.59, total_loss=0.0637, train_psnr=13.3]
+Epoch 1:  86%|████████▌ | 43/50 [00:01&lt;00:00, 32.05it/s, eval_psnr=6.59, total_loss=0.0637, train_psnr=13.3]
+Epoch 1:  86%|████████▌ | 43/50 [00:01&lt;00:00, 32.05it/s, eval_psnr=6.59, total_loss=0.0639, train_psnr=13.3]
+Epoch 1:  86%|████████▌ | 43/50 [00:01&lt;00:00, 32.05it/s, eval_psnr=6.59, total_loss=0.0639, train_psnr=13.3]
+Epoch 1:  86%|████████▌ | 43/50 [00:01&lt;00:00, 32.05it/s, eval_psnr=6.59, total_loss=0.0629, train_psnr=13.3]
+Epoch 1:  86%|████████▌ | 43/50 [00:01&lt;00:00, 32.05it/s, eval_psnr=6.59, total_loss=0.0629, train_psnr=13.3]
+Epoch 1:  86%|████████▌ | 43/50 [00:01&lt;00:00, 32.05it/s, eval_psnr=6.59, total_loss=0.0646, train_psnr=13.2]
+Epoch 1:  86%|████████▌ | 43/50 [00:01&lt;00:00, 32.05it/s, eval_psnr=6.59, total_loss=0.0646, train_psnr=13.2]
+Epoch 1:  86%|████████▌ | 43/50 [00:01&lt;00:00, 32.05it/s, eval_psnr=6.59, total_loss=0.0644, train_psnr=13.2]
+Epoch 1:  94%|█████████▍| 47/50 [00:01&lt;00:00, 32.13it/s, eval_psnr=6.59, total_loss=0.0644, train_psnr=13.2]
+Epoch 1:  94%|█████████▍| 47/50 [00:01&lt;00:00, 32.13it/s, eval_psnr=6.59, total_loss=0.0644, train_psnr=13.2]
+Epoch 1:  94%|█████████▍| 47/50 [00:01&lt;00:00, 32.13it/s, eval_psnr=6.59, total_loss=0.0639, train_psnr=13.2]
+Epoch 1:  94%|█████████▍| 47/50 [00:01&lt;00:00, 32.13it/s, eval_psnr=6.59, total_loss=0.0639, train_psnr=13.2]
+Epoch 1:  94%|█████████▍| 47/50 [00:01&lt;00:00, 32.13it/s, eval_psnr=6.59, total_loss=0.0634, train_psnr=13.2]
+Epoch 1:  94%|█████████▍| 47/50 [00:01&lt;00:00, 32.13it/s, eval_psnr=6.59, total_loss=0.0634, train_psnr=13.2]
+Epoch 1:  94%|█████████▍| 47/50 [00:01&lt;00:00, 32.13it/s, eval_psnr=6.59, total_loss=0.0638, train_psnr=13.2]
+Epoch 1: 100%|██████████| 50/50 [00:01&lt;00:00, 31.76it/s, eval_psnr=6.59, total_loss=0.0638, train_psnr=13.2]
+
+  0%|          | 0/50 [00:00&lt;?, ?it/s]
+Epoch 2:   0%|          | 0/50 [00:00&lt;?, ?it/s]
+Epoch 2:   0%|          | 0/50 [00:00&lt;?, ?it/s, eval_psnr=10.4, total_loss=0.0112, train_psnr=19.5]
+Epoch 2:   0%|          | 0/50 [00:00&lt;?, ?it/s, eval_psnr=10.4, total_loss=0.0112, train_psnr=19.5]
+Epoch 2:   0%|          | 0/50 [00:00&lt;?, ?it/s, eval_psnr=10.4, total_loss=0.085, train_psnr=13.7]
+Epoch 2:   0%|          | 0/50 [00:00&lt;?, ?it/s, eval_psnr=10.4, total_loss=0.085, train_psnr=13.7]
+Epoch 2:   0%|          | 0/50 [00:00&lt;?, ?it/s, eval_psnr=10.4, total_loss=0.0621, train_psnr=15.1]
+Epoch 2:   0%|          | 0/50 [00:00&lt;?, ?it/s, eval_psnr=10.4, total_loss=0.0621, train_psnr=15.1]
+Epoch 2:   0%|          | 0/50 [00:00&lt;?, ?it/s, eval_psnr=10.4, total_loss=0.0555, train_psnr=15]
+Epoch 2:   8%|▊         | 4/50 [00:00&lt;00:01, 32.49it/s, eval_psnr=10.4, total_loss=0.0555, train_psnr=15]
+Epoch 2:   8%|▊         | 4/50 [00:00&lt;00:01, 32.49it/s, eval_psnr=10.4, total_loss=0.0555, train_psnr=15]
+Epoch 2:   8%|▊         | 4/50 [00:00&lt;00:01, 32.49it/s, eval_psnr=10.4, total_loss=0.0461, train_psnr=16.1]
+Epoch 2:   8%|▊         | 4/50 [00:00&lt;00:01, 32.49it/s, eval_psnr=10.4, total_loss=0.0461, train_psnr=16.1]
+Epoch 2:   8%|▊         | 4/50 [00:00&lt;00:01, 32.49it/s, eval_psnr=10.4, total_loss=0.0446, train_psnr=15.8]
+Epoch 2:   8%|▊         | 4/50 [00:00&lt;00:01, 32.49it/s, eval_psnr=10.4, total_loss=0.0446, train_psnr=15.8]
+Epoch 2:   8%|▊         | 4/50 [00:00&lt;00:01, 32.49it/s, eval_psnr=10.4, total_loss=0.0472, train_psnr=15.3]
+Epoch 2:   8%|▊         | 4/50 [00:00&lt;00:01, 32.49it/s, eval_psnr=10.4, total_loss=0.0472, train_psnr=15.3]
+Epoch 2:   8%|▊         | 4/50 [00:00&lt;00:01, 32.49it/s, eval_psnr=10.4, total_loss=0.0471, train_psnr=15]
+Epoch 2:  16%|█▌        | 8/50 [00:00&lt;00:01, 32.41it/s, eval_psnr=10.4, total_loss=0.0471, train_psnr=15]
+Epoch 2:  16%|█▌        | 8/50 [00:00&lt;00:01, 32.41it/s, eval_psnr=10.4, total_loss=0.0471, train_psnr=15]
+Epoch 2:  16%|█▌        | 8/50 [00:00&lt;00:01, 32.41it/s, eval_psnr=10.4, total_loss=0.0449, train_psnr=15.1]
+Epoch 2:  16%|█▌        | 8/50 [00:00&lt;00:01, 32.41it/s, eval_psnr=10.4, total_loss=0.0449, train_psnr=15.1]
+Epoch 2:  16%|█▌        | 8/50 [00:00&lt;00:01, 32.41it/s, eval_psnr=10.4, total_loss=0.0409, train_psnr=15.9]
+Epoch 2:  16%|█▌        | 8/50 [00:00&lt;00:01, 32.41it/s, eval_psnr=10.4, total_loss=0.0409, train_psnr=15.9]
+Epoch 2:  16%|█▌        | 8/50 [00:00&lt;00:01, 32.41it/s, eval_psnr=10.4, total_loss=0.0389, train_psnr=16]
+Epoch 2:  16%|█▌        | 8/50 [00:00&lt;00:01, 32.41it/s, eval_psnr=10.4, total_loss=0.0389, train_psnr=16]
+Epoch 2:  16%|█▌        | 8/50 [00:00&lt;00:01, 32.41it/s, eval_psnr=10.4, total_loss=0.0429, train_psnr=15.6]
+Epoch 2:  24%|██▍       | 12/50 [00:00&lt;00:01, 32.26it/s, eval_psnr=10.4, total_loss=0.0429, train_psnr=15.6]
+Epoch 2:  24%|██▍       | 12/50 [00:00&lt;00:01, 32.26it/s, eval_psnr=10.4, total_loss=0.0429, train_psnr=15.6]
+Epoch 2:  24%|██▍       | 12/50 [00:00&lt;00:01, 32.26it/s, eval_psnr=10.4, total_loss=0.0403, train_psnr=16]
+Epoch 2:  24%|██▍       | 12/50 [00:00&lt;00:01, 32.26it/s, eval_psnr=10.4, total_loss=0.0403, train_psnr=16]
+Epoch 2:  24%|██▍       | 12/50 [00:00&lt;00:01, 32.26it/s, eval_psnr=10.4, total_loss=0.0383, train_psnr=16.2]
+Epoch 2:  24%|██▍       | 12/50 [00:00&lt;00:01, 32.26it/s, eval_psnr=10.4, total_loss=0.0383, train_psnr=16.2]
+Epoch 2:  24%|██▍       | 12/50 [00:00&lt;00:01, 32.26it/s, eval_psnr=10.4, total_loss=0.0403, train_psnr=15.9]
+Epoch 2:  24%|██▍       | 12/50 [00:00&lt;00:01, 32.26it/s, eval_psnr=10.4, total_loss=0.0403, train_psnr=15.9]
+Epoch 2:  24%|██▍       | 12/50 [00:00&lt;00:01, 32.26it/s, eval_psnr=10.4, total_loss=0.0388, train_psnr=16]
+Epoch 2:  32%|███▏      | 16/50 [00:00&lt;00:01, 31.98it/s, eval_psnr=10.4, total_loss=0.0388, train_psnr=16]
+Epoch 2:  32%|███▏      | 16/50 [00:00&lt;00:01, 31.98it/s, eval_psnr=10.4, total_loss=0.0388, train_psnr=16]
+Epoch 2:  32%|███▏      | 16/50 [00:00&lt;00:01, 31.98it/s, eval_psnr=10.4, total_loss=0.037, train_psnr=16.3]
+Epoch 2:  32%|███▏      | 16/50 [00:00&lt;00:01, 31.98it/s, eval_psnr=10.4, total_loss=0.037, train_psnr=16.3]
+Epoch 2:  32%|███▏      | 16/50 [00:00&lt;00:01, 31.98it/s, eval_psnr=10.4, total_loss=0.0366, train_psnr=16.2]
+Epoch 2:  32%|███▏      | 16/50 [00:00&lt;00:01, 31.98it/s, eval_psnr=10.4, total_loss=0.0366, train_psnr=16.2]
+Epoch 2:  32%|███▏      | 16/50 [00:00&lt;00:01, 31.98it/s, eval_psnr=10.4, total_loss=0.0372, train_psnr=16.1]
+Epoch 2:  32%|███▏      | 16/50 [00:00&lt;00:01, 31.98it/s, eval_psnr=10.4, total_loss=0.0372, train_psnr=16.1]
+Epoch 2:  32%|███▏      | 16/50 [00:00&lt;00:01, 31.98it/s, eval_psnr=10.4, total_loss=0.0364, train_psnr=16.1]
+Epoch 2:  40%|████      | 20/50 [00:00&lt;00:00, 32.03it/s, eval_psnr=10.4, total_loss=0.0364, train_psnr=16.1]
+Epoch 2:  40%|████      | 20/50 [00:00&lt;00:00, 32.03it/s, eval_psnr=10.4, total_loss=0.0364, train_psnr=16.1]
+Epoch 2:  40%|████      | 20/50 [00:00&lt;00:00, 32.03it/s, eval_psnr=10.4, total_loss=0.0363, train_psnr=16]
+Epoch 2:  40%|████      | 20/50 [00:00&lt;00:00, 32.03it/s, eval_psnr=10.4, total_loss=0.0363, train_psnr=16]
+Epoch 2:  40%|████      | 20/50 [00:00&lt;00:00, 32.03it/s, eval_psnr=10.4, total_loss=0.0351, train_psnr=16.2]
+Epoch 2:  40%|████      | 20/50 [00:00&lt;00:00, 32.03it/s, eval_psnr=10.4, total_loss=0.0351, train_psnr=16.2]
+Epoch 2:  40%|████      | 20/50 [00:00&lt;00:00, 32.03it/s, eval_psnr=10.4, total_loss=0.0339, train_psnr=16.4]
+Epoch 2:  40%|████      | 20/50 [00:00&lt;00:00, 32.03it/s, eval_psnr=10.4, total_loss=0.0339, train_psnr=16.4]
+Epoch 2:  40%|████      | 20/50 [00:00&lt;00:00, 32.03it/s, eval_psnr=10.4, total_loss=0.0329, train_psnr=16.6]
+Epoch 2:  48%|████▊     | 24/50 [00:00&lt;00:00, 32.08it/s, eval_psnr=10.4, total_loss=0.0329, train_psnr=16.6]
+Epoch 2:  48%|████▊     | 24/50 [00:00&lt;00:00, 32.08it/s, eval_psnr=10.4, total_loss=0.0329, train_psnr=16.6]
+Epoch 2:  48%|████▊     | 24/50 [00:00&lt;00:00, 32.08it/s, eval_psnr=10.4, total_loss=0.0318, train_psnr=16.9]
+Epoch 2:  48%|████▊     | 24/50 [00:00&lt;00:00, 32.08it/s, eval_psnr=10.4, total_loss=0.0318, train_psnr=16.9]
+Epoch 2:  48%|████▊     | 24/50 [00:00&lt;00:00, 32.08it/s, eval_psnr=10.4, total_loss=0.0316, train_psnr=16.8]
+Epoch 2:  48%|████▊     | 24/50 [00:00&lt;00:00, 32.08it/s, eval_psnr=10.4, total_loss=0.0316, train_psnr=16.8]
+Epoch 2:  48%|████▊     | 24/50 [00:00&lt;00:00, 32.08it/s, eval_psnr=10.4, total_loss=0.0307, train_psnr=17]
+Epoch 2:  48%|████▊     | 24/50 [00:00&lt;00:00, 32.08it/s, eval_psnr=10.4, total_loss=0.0307, train_psnr=17]
+Epoch 2:  48%|████▊     | 24/50 [00:00&lt;00:00, 32.08it/s, eval_psnr=10.4, total_loss=0.0301, train_psnr=17]
+Epoch 2:  56%|█████▌    | 28/50 [00:00&lt;00:00, 32.08it/s, eval_psnr=10.4, total_loss=0.0301, train_psnr=17]
+Epoch 2:  56%|█████▌    | 28/50 [00:00&lt;00:00, 32.08it/s, eval_psnr=10.4, total_loss=0.0301, train_psnr=17]
+Epoch 2:  56%|█████▌    | 28/50 [00:00&lt;00:00, 32.08it/s, eval_psnr=10.4, total_loss=0.0294, train_psnr=17.1]
+Epoch 2:  56%|█████▌    | 28/50 [00:00&lt;00:00, 32.08it/s, eval_psnr=10.4, total_loss=0.0294, train_psnr=17.1]
+Epoch 2:  56%|█████▌    | 28/50 [00:00&lt;00:00, 32.08it/s, eval_psnr=10.4, total_loss=0.0291, train_psnr=17.1]
+Epoch 2:  56%|█████▌    | 28/50 [00:00&lt;00:00, 32.08it/s, eval_psnr=10.4, total_loss=0.0291, train_psnr=17.1]
+Epoch 2:  56%|█████▌    | 28/50 [00:00&lt;00:00, 32.08it/s, eval_psnr=10.4, total_loss=0.0282, train_psnr=17.4]
+Epoch 2:  56%|█████▌    | 28/50 [00:00&lt;00:00, 32.08it/s, eval_psnr=10.4, total_loss=0.0282, train_psnr=17.4]
+Epoch 2:  56%|█████▌    | 28/50 [00:00&lt;00:00, 32.08it/s, eval_psnr=10.4, total_loss=0.028, train_psnr=17.4]
+Epoch 2:  64%|██████▍   | 32/50 [00:00&lt;00:00, 32.10it/s, eval_psnr=10.4, total_loss=0.028, train_psnr=17.4]
+Epoch 2:  64%|██████▍   | 32/50 [00:00&lt;00:00, 32.10it/s, eval_psnr=10.4, total_loss=0.028, train_psnr=17.4]
+Epoch 2:  64%|██████▍   | 32/50 [00:01&lt;00:00, 32.10it/s, eval_psnr=10.4, total_loss=0.0275, train_psnr=17.5]
+Epoch 2:  64%|██████▍   | 32/50 [00:01&lt;00:00, 32.10it/s, eval_psnr=10.4, total_loss=0.0275, train_psnr=17.5]
+Epoch 2:  64%|██████▍   | 32/50 [00:01&lt;00:00, 32.10it/s, eval_psnr=10.4, total_loss=0.0272, train_psnr=17.5]
+Epoch 2:  64%|██████▍   | 32/50 [00:01&lt;00:00, 32.10it/s, eval_psnr=10.4, total_loss=0.0272, train_psnr=17.5]
+Epoch 2:  64%|██████▍   | 32/50 [00:01&lt;00:00, 32.10it/s, eval_psnr=10.4, total_loss=0.0269, train_psnr=17.5]
+Epoch 2:  64%|██████▍   | 32/50 [00:01&lt;00:00, 32.10it/s, eval_psnr=10.4, total_loss=0.0269, train_psnr=17.5]
+Epoch 2:  64%|██████▍   | 32/50 [00:01&lt;00:00, 32.10it/s, eval_psnr=10.4, total_loss=0.0264, train_psnr=17.6]
+Epoch 2:  72%|███████▏  | 36/50 [00:01&lt;00:00, 32.12it/s, eval_psnr=10.4, total_loss=0.0264, train_psnr=17.6]
+Epoch 2:  72%|███████▏  | 36/50 [00:01&lt;00:00, 32.12it/s, eval_psnr=10.4, total_loss=0.0264, train_psnr=17.6]
+Epoch 2:  72%|███████▏  | 36/50 [00:01&lt;00:00, 32.12it/s, eval_psnr=10.4, total_loss=0.026, train_psnr=17.6]
+Epoch 2:  72%|███████▏  | 36/50 [00:01&lt;00:00, 32.12it/s, eval_psnr=10.4, total_loss=0.026, train_psnr=17.6]
+Epoch 2:  72%|███████▏  | 36/50 [00:01&lt;00:00, 32.12it/s, eval_psnr=10.4, total_loss=0.0254, train_psnr=17.8]
+Epoch 2:  72%|███████▏  | 36/50 [00:01&lt;00:00, 32.12it/s, eval_psnr=10.4, total_loss=0.0254, train_psnr=17.8]
+Epoch 2:  72%|███████▏  | 36/50 [00:01&lt;00:00, 32.12it/s, eval_psnr=10.4, total_loss=0.025, train_psnr=17.9]
+Epoch 2:  72%|███████▏  | 36/50 [00:01&lt;00:00, 32.12it/s, eval_psnr=10.4, total_loss=0.025, train_psnr=17.9]
+Epoch 2:  72%|███████▏  | 36/50 [00:01&lt;00:00, 32.12it/s, eval_psnr=10.4, total_loss=0.0248, train_psnr=17.9]
+Epoch 2:  80%|████████  | 40/50 [00:01&lt;00:00, 32.12it/s, eval_psnr=10.4, total_loss=0.0248, train_psnr=17.9]
+Epoch 2:  80%|████████  | 40/50 [00:01&lt;00:00, 32.12it/s, eval_psnr=10.4, total_loss=0.0248, train_psnr=17.9]
+Epoch 2:  80%|████████  | 40/50 [00:01&lt;00:00, 32.12it/s, eval_psnr=10.4, total_loss=0.0247, train_psnr=17.8]
+Epoch 2:  80%|████████  | 40/50 [00:01&lt;00:00, 32.12it/s, eval_psnr=10.4, total_loss=0.0247, train_psnr=17.8]
+Epoch 2:  80%|████████  | 40/50 [00:01&lt;00:00, 32.12it/s, eval_psnr=10.4, total_loss=0.0245, train_psnr=17.8]
+Epoch 2:  80%|████████  | 40/50 [00:01&lt;00:00, 32.12it/s, eval_psnr=10.4, total_loss=0.0245, train_psnr=17.8]
+Epoch 2:  80%|████████  | 40/50 [00:01&lt;00:00, 32.12it/s, eval_psnr=10.4, total_loss=0.0241, train_psnr=17.9]
+Epoch 2:  80%|████████  | 40/50 [00:01&lt;00:00, 32.12it/s, eval_psnr=10.4, total_loss=0.0241, train_psnr=17.9]
+Epoch 2:  80%|████████  | 40/50 [00:01&lt;00:00, 32.12it/s, eval_psnr=10.4, total_loss=0.0238, train_psnr=18]
+Epoch 2:  88%|████████▊ | 44/50 [00:01&lt;00:00, 32.01it/s, eval_psnr=10.4, total_loss=0.0238, train_psnr=18]
+Epoch 2:  88%|████████▊ | 44/50 [00:01&lt;00:00, 32.01it/s, eval_psnr=10.4, total_loss=0.0238, train_psnr=18]
+Epoch 2:  88%|████████▊ | 44/50 [00:01&lt;00:00, 32.01it/s, eval_psnr=10.4, total_loss=0.0234, train_psnr=18]
+Epoch 2:  88%|████████▊ | 44/50 [00:01&lt;00:00, 32.01it/s, eval_psnr=10.4, total_loss=0.0234, train_psnr=18]
+Epoch 2:  88%|████████▊ | 44/50 [00:01&lt;00:00, 32.01it/s, eval_psnr=10.4, total_loss=0.0231, train_psnr=18.1]
+Epoch 2:  88%|████████▊ | 44/50 [00:01&lt;00:00, 32.01it/s, eval_psnr=10.4, total_loss=0.0231, train_psnr=18.1]
+Epoch 2:  88%|████████▊ | 44/50 [00:01&lt;00:00, 32.01it/s, eval_psnr=10.4, total_loss=0.0228, train_psnr=18.2]
+Epoch 2:  88%|████████▊ | 44/50 [00:01&lt;00:00, 32.01it/s, eval_psnr=10.4, total_loss=0.0228, train_psnr=18.2]
+Epoch 2:  88%|████████▊ | 44/50 [00:01&lt;00:00, 32.01it/s, eval_psnr=10.4, total_loss=0.0225, train_psnr=18.2]
+Epoch 2:  96%|█████████▌| 48/50 [00:01&lt;00:00, 31.86it/s, eval_psnr=10.4, total_loss=0.0225, train_psnr=18.2]
+Epoch 2:  96%|█████████▌| 48/50 [00:01&lt;00:00, 31.86it/s, eval_psnr=10.4, total_loss=0.0225, train_psnr=18.2]
+Epoch 2:  96%|█████████▌| 48/50 [00:01&lt;00:00, 31.86it/s, eval_psnr=10.4, total_loss=0.0223, train_psnr=18.2]
+Epoch 2:  96%|█████████▌| 48/50 [00:01&lt;00:00, 31.86it/s, eval_psnr=10.4, total_loss=0.0223, train_psnr=18.2]
+Epoch 2:  96%|█████████▌| 48/50 [00:01&lt;00:00, 31.86it/s, eval_psnr=10.4, total_loss=0.0221, train_psnr=18.2]
+Epoch 2: 100%|██████████| 50/50 [00:01&lt;00:00, 32.06it/s, eval_psnr=10.4, total_loss=0.0221, train_psnr=18.2]
+
+  0%|          | 0/50 [00:00&lt;?, ?it/s]
+Epoch 3:   0%|          | 0/50 [00:00&lt;?, ?it/s]
+Epoch 3:   0%|          | 0/50 [00:00&lt;?, ?it/s, eval_psnr=16.1, total_loss=0.00893, train_psnr=20.5]
+Epoch 3:   0%|          | 0/50 [00:00&lt;?, ?it/s, eval_psnr=16.1, total_loss=0.00893, train_psnr=20.5]
+Epoch 3:   0%|          | 0/50 [00:00&lt;?, ?it/s, eval_psnr=16.1, total_loss=0.0115, train_psnr=19.5]
+Epoch 3:   0%|          | 0/50 [00:00&lt;?, ?it/s, eval_psnr=16.1, total_loss=0.0115, train_psnr=19.5]
+Epoch 3:   0%|          | 0/50 [00:00&lt;?, ?it/s, eval_psnr=16.1, total_loss=0.0104, train_psnr=19.9]
+Epoch 3:   0%|          | 0/50 [00:00&lt;?, ?it/s, eval_psnr=16.1, total_loss=0.0104, train_psnr=19.9]
+Epoch 3:   0%|          | 0/50 [00:00&lt;?, ?it/s, eval_psnr=16.1, total_loss=0.0159, train_psnr=18.7]
+Epoch 3:   8%|▊         | 4/50 [00:00&lt;00:01, 32.00it/s, eval_psnr=16.1, total_loss=0.0159, train_psnr=18.7]
+Epoch 3:   8%|▊         | 4/50 [00:00&lt;00:01, 32.00it/s, eval_psnr=16.1, total_loss=0.0159, train_psnr=18.7]
+Epoch 3:   8%|▊         | 4/50 [00:00&lt;00:01, 32.00it/s, eval_psnr=16.1, total_loss=0.0164, train_psnr=18.4]
+Epoch 3:   8%|▊         | 4/50 [00:00&lt;00:01, 32.00it/s, eval_psnr=16.1, total_loss=0.0164, train_psnr=18.4]
+Epoch 3:   8%|▊         | 4/50 [00:00&lt;00:01, 32.00it/s, eval_psnr=16.1, total_loss=0.0157, train_psnr=18.5]
+Epoch 3:   8%|▊         | 4/50 [00:00&lt;00:01, 32.00it/s, eval_psnr=16.1, total_loss=0.0157, train_psnr=18.5]
+Epoch 3:   8%|▊         | 4/50 [00:00&lt;00:01, 32.00it/s, eval_psnr=16.1, total_loss=0.0149, train_psnr=18.7]
+Epoch 3:   8%|▊         | 4/50 [00:00&lt;00:01, 32.00it/s, eval_psnr=16.1, total_loss=0.0149, train_psnr=18.7]
+Epoch 3:   8%|▊         | 4/50 [00:00&lt;00:01, 32.00it/s, eval_psnr=16.1, total_loss=0.0148, train_psnr=18.7]
+Epoch 3:  16%|█▌        | 8/50 [00:00&lt;00:01, 32.08it/s, eval_psnr=16.1, total_loss=0.0148, train_psnr=18.7]
+Epoch 3:  16%|█▌        | 8/50 [00:00&lt;00:01, 32.08it/s, eval_psnr=16.1, total_loss=0.0148, train_psnr=18.7]
+Epoch 3:  16%|█▌        | 8/50 [00:00&lt;00:01, 32.08it/s, eval_psnr=16.1, total_loss=0.0147, train_psnr=18.7]
+Epoch 3:  16%|█▌        | 8/50 [00:00&lt;00:01, 32.08it/s, eval_psnr=16.1, total_loss=0.0147, train_psnr=18.7]
+Epoch 3:  16%|█▌        | 8/50 [00:00&lt;00:01, 32.08it/s, eval_psnr=16.1, total_loss=0.0143, train_psnr=18.8]
+Epoch 3:  16%|█▌        | 8/50 [00:00&lt;00:01, 32.08it/s, eval_psnr=16.1, total_loss=0.0143, train_psnr=18.8]
+Epoch 3:  16%|█▌        | 8/50 [00:00&lt;00:01, 32.08it/s, eval_psnr=16.1, total_loss=0.0138, train_psnr=18.9]
+Epoch 3:  16%|█▌        | 8/50 [00:00&lt;00:01, 32.08it/s, eval_psnr=16.1, total_loss=0.0138, train_psnr=18.9]
+Epoch 3:  16%|█▌        | 8/50 [00:00&lt;00:01, 32.08it/s, eval_psnr=16.1, total_loss=0.0131, train_psnr=19.3]
+Epoch 3:  24%|██▍       | 12/50 [00:00&lt;00:01, 32.15it/s, eval_psnr=16.1, total_loss=0.0131, train_psnr=19.3]
+Epoch 3:  24%|██▍       | 12/50 [00:00&lt;00:01, 32.15it/s, eval_psnr=16.1, total_loss=0.0131, train_psnr=19.3]
+Epoch 3:  24%|██▍       | 12/50 [00:00&lt;00:01, 32.15it/s, eval_psnr=16.1, total_loss=0.0129, train_psnr=19.3]
+Epoch 3:  24%|██▍       | 12/50 [00:00&lt;00:01, 32.15it/s, eval_psnr=16.1, total_loss=0.0129, train_psnr=19.3]
+Epoch 3:  24%|██▍       | 12/50 [00:00&lt;00:01, 32.15it/s, eval_psnr=16.1, total_loss=0.0125, train_psnr=19.5]
+Epoch 3:  24%|██▍       | 12/50 [00:00&lt;00:01, 32.15it/s, eval_psnr=16.1, total_loss=0.0125, train_psnr=19.5]
+Epoch 3:  24%|██▍       | 12/50 [00:00&lt;00:01, 32.15it/s, eval_psnr=16.1, total_loss=0.013, train_psnr=19.3]
+Epoch 3:  24%|██▍       | 12/50 [00:00&lt;00:01, 32.15it/s, eval_psnr=16.1, total_loss=0.013, train_psnr=19.3]
+Epoch 3:  24%|██▍       | 12/50 [00:00&lt;00:01, 32.15it/s, eval_psnr=16.1, total_loss=0.0128, train_psnr=19.4]
+Epoch 3:  32%|███▏      | 16/50 [00:00&lt;00:01, 32.24it/s, eval_psnr=16.1, total_loss=0.0128, train_psnr=19.4]
+Epoch 3:  32%|███▏      | 16/50 [00:00&lt;00:01, 32.24it/s, eval_psnr=16.1, total_loss=0.0128, train_psnr=19.4]
+Epoch 3:  32%|███▏      | 16/50 [00:00&lt;00:01, 32.24it/s, eval_psnr=16.1, total_loss=0.0123, train_psnr=19.7]
+Epoch 3:  32%|███▏      | 16/50 [00:00&lt;00:01, 32.24it/s, eval_psnr=16.1, total_loss=0.0123, train_psnr=19.7]
+Epoch 3:  32%|███▏      | 16/50 [00:00&lt;00:01, 32.24it/s, eval_psnr=16.1, total_loss=0.012, train_psnr=19.7]
+Epoch 3:  32%|███▏      | 16/50 [00:00&lt;00:01, 32.24it/s, eval_psnr=16.1, total_loss=0.012, train_psnr=19.7]
+Epoch 3:  32%|███▏      | 16/50 [00:00&lt;00:01, 32.24it/s, eval_psnr=16.1, total_loss=0.012, train_psnr=19.7]
+Epoch 3:  32%|███▏      | 16/50 [00:00&lt;00:01, 32.24it/s, eval_psnr=16.1, total_loss=0.012, train_psnr=19.7]
+Epoch 3:  32%|███▏      | 16/50 [00:00&lt;00:01, 32.24it/s, eval_psnr=16.1, total_loss=0.0116, train_psnr=19.9]
+Epoch 3:  40%|████      | 20/50 [00:00&lt;00:00, 32.22it/s, eval_psnr=16.1, total_loss=0.0116, train_psnr=19.9]
+Epoch 3:  40%|████      | 20/50 [00:00&lt;00:00, 32.22it/s, eval_psnr=16.1, total_loss=0.0116, train_psnr=19.9]
+Epoch 3:  40%|████      | 20/50 [00:00&lt;00:00, 32.22it/s, eval_psnr=16.1, total_loss=0.0112, train_psnr=20.2]
+Epoch 3:  40%|████      | 20/50 [00:00&lt;00:00, 32.22it/s, eval_psnr=16.1, total_loss=0.0112, train_psnr=20.2]
+Epoch 3:  40%|████      | 20/50 [00:00&lt;00:00, 32.22it/s, eval_psnr=16.1, total_loss=0.0114, train_psnr=20.1]
+Epoch 3:  40%|████      | 20/50 [00:00&lt;00:00, 32.22it/s, eval_psnr=16.1, total_loss=0.0114, train_psnr=20.1]
+Epoch 3:  40%|████      | 20/50 [00:00&lt;00:00, 32.22it/s, eval_psnr=16.1, total_loss=0.011, train_psnr=20.5]
+Epoch 3:  40%|████      | 20/50 [00:00&lt;00:00, 32.22it/s, eval_psnr=16.1, total_loss=0.011, train_psnr=20.5]
+Epoch 3:  40%|████      | 20/50 [00:00&lt;00:00, 32.22it/s, eval_psnr=16.1, total_loss=0.0109, train_psnr=20.5]
+Epoch 3:  48%|████▊     | 24/50 [00:00&lt;00:00, 32.17it/s, eval_psnr=16.1, total_loss=0.0109, train_psnr=20.5]
+Epoch 3:  48%|████▊     | 24/50 [00:00&lt;00:00, 32.17it/s, eval_psnr=16.1, total_loss=0.0109, train_psnr=20.5]
+Epoch 3:  48%|████▊     | 24/50 [00:00&lt;00:00, 32.17it/s, eval_psnr=16.1, total_loss=0.0108, train_psnr=20.5]
+Epoch 3:  48%|████▊     | 24/50 [00:00&lt;00:00, 32.17it/s, eval_psnr=16.1, total_loss=0.0108, train_psnr=20.5]
+Epoch 3:  48%|████▊     | 24/50 [00:00&lt;00:00, 32.17it/s, eval_psnr=16.1, total_loss=0.0106, train_psnr=20.5]
+Epoch 3:  48%|████▊     | 24/50 [00:00&lt;00:00, 32.17it/s, eval_psnr=16.1, total_loss=0.0106, train_psnr=20.5]
+Epoch 3:  48%|████▊     | 24/50 [00:00&lt;00:00, 32.17it/s, eval_psnr=16.1, total_loss=0.0109, train_psnr=20.4]
+Epoch 3:  48%|████▊     | 24/50 [00:00&lt;00:00, 32.17it/s, eval_psnr=16.1, total_loss=0.0109, train_psnr=20.4]
+Epoch 3:  48%|████▊     | 24/50 [00:00&lt;00:00, 32.17it/s, eval_psnr=16.1, total_loss=0.0109, train_psnr=20.4]
+Epoch 3:  56%|█████▌    | 28/50 [00:00&lt;00:00, 32.09it/s, eval_psnr=16.1, total_loss=0.0109, train_psnr=20.4]
+Epoch 3:  56%|█████▌    | 28/50 [00:00&lt;00:00, 32.09it/s, eval_psnr=16.1, total_loss=0.0109, train_psnr=20.4]
+Epoch 3:  56%|█████▌    | 28/50 [00:00&lt;00:00, 32.09it/s, eval_psnr=16.1, total_loss=0.0108, train_psnr=20.4]
+Epoch 3:  56%|█████▌    | 28/50 [00:00&lt;00:00, 32.09it/s, eval_psnr=16.1, total_loss=0.0108, train_psnr=20.4]
+Epoch 3:  56%|█████▌    | 28/50 [00:00&lt;00:00, 32.09it/s, eval_psnr=16.1, total_loss=0.0119, train_psnr=20.2]
+Epoch 3:  56%|█████▌    | 28/50 [00:00&lt;00:00, 32.09it/s, eval_psnr=16.1, total_loss=0.0119, train_psnr=20.2]
+Epoch 3:  56%|█████▌    | 28/50 [00:00&lt;00:00, 32.09it/s, eval_psnr=16.1, total_loss=0.0117, train_psnr=20.3]
+Epoch 3:  56%|█████▌    | 28/50 [00:00&lt;00:00, 32.09it/s, eval_psnr=16.1, total_loss=0.0117, train_psnr=20.3]
+Epoch 3:  56%|█████▌    | 28/50 [00:00&lt;00:00, 32.09it/s, eval_psnr=16.1, total_loss=0.0115, train_psnr=20.4]
+Epoch 3:  64%|██████▍   | 32/50 [00:00&lt;00:00, 31.82it/s, eval_psnr=16.1, total_loss=0.0115, train_psnr=20.4]
+Epoch 3:  64%|██████▍   | 32/50 [00:00&lt;00:00, 31.82it/s, eval_psnr=16.1, total_loss=0.0115, train_psnr=20.4]
+Epoch 3:  64%|██████▍   | 32/50 [00:01&lt;00:00, 31.82it/s, eval_psnr=16.1, total_loss=0.0113, train_psnr=20.4]
+Epoch 3:  64%|██████▍   | 32/50 [00:01&lt;00:00, 31.82it/s, eval_psnr=16.1, total_loss=0.0113, train_psnr=20.4]
+Epoch 3:  64%|██████▍   | 32/50 [00:01&lt;00:00, 31.82it/s, eval_psnr=16.1, total_loss=0.012, train_psnr=20.3]
+Epoch 3:  64%|██████▍   | 32/50 [00:01&lt;00:00, 31.82it/s, eval_psnr=16.1, total_loss=0.012, train_psnr=20.3]
+Epoch 3:  64%|██████▍   | 32/50 [00:01&lt;00:00, 31.82it/s, eval_psnr=16.1, total_loss=0.0118, train_psnr=20.4]
+Epoch 3:  64%|██████▍   | 32/50 [00:01&lt;00:00, 31.82it/s, eval_psnr=16.1, total_loss=0.0118, train_psnr=20.4]
+Epoch 3:  64%|██████▍   | 32/50 [00:01&lt;00:00, 31.82it/s, eval_psnr=16.1, total_loss=0.0117, train_psnr=20.4]
+Epoch 3:  72%|███████▏  | 36/50 [00:01&lt;00:00, 31.87it/s, eval_psnr=16.1, total_loss=0.0117, train_psnr=20.4]
+Epoch 3:  72%|███████▏  | 36/50 [00:01&lt;00:00, 31.87it/s, eval_psnr=16.1, total_loss=0.0117, train_psnr=20.4]
+Epoch 3:  72%|███████▏  | 36/50 [00:01&lt;00:00, 31.87it/s, eval_psnr=16.1, total_loss=0.0116, train_psnr=20.4]
+Epoch 3:  72%|███████▏  | 36/50 [00:01&lt;00:00, 31.87it/s, eval_psnr=16.1, total_loss=0.0116, train_psnr=20.4]
+Epoch 3:  72%|███████▏  | 36/50 [00:01&lt;00:00, 31.87it/s, eval_psnr=16.1, total_loss=0.0114, train_psnr=20.5]
+Epoch 3:  72%|███████▏  | 36/50 [00:01&lt;00:00, 31.87it/s, eval_psnr=16.1, total_loss=0.0114, train_psnr=20.5]
+Epoch 3:  72%|███████▏  | 36/50 [00:01&lt;00:00, 31.87it/s, eval_psnr=16.1, total_loss=0.0115, train_psnr=20.4]
+Epoch 3:  72%|███████▏  | 36/50 [00:01&lt;00:00, 31.87it/s, eval_psnr=16.1, total_loss=0.0115, train_psnr=20.4]
+Epoch 3:  72%|███████▏  | 36/50 [00:01&lt;00:00, 31.87it/s, eval_psnr=16.1, total_loss=0.0113, train_psnr=20.6]
+Epoch 3:  80%|████████  | 40/50 [00:01&lt;00:00, 31.96it/s, eval_psnr=16.1, total_loss=0.0113, train_psnr=20.6]
+Epoch 3:  80%|████████  | 40/50 [00:01&lt;00:00, 31.96it/s, eval_psnr=16.1, total_loss=0.0113, train_psnr=20.6]
+Epoch 3:  80%|████████  | 40/50 [00:01&lt;00:00, 31.96it/s, eval_psnr=16.1, total_loss=0.011, train_psnr=20.7]
+Epoch 3:  80%|████████  | 40/50 [00:01&lt;00:00, 31.96it/s, eval_psnr=16.1, total_loss=0.011, train_psnr=20.7]
+Epoch 3:  80%|████████  | 40/50 [00:01&lt;00:00, 31.96it/s, eval_psnr=16.1, total_loss=0.0108, train_psnr=21]
+Epoch 3:  80%|████████  | 40/50 [00:01&lt;00:00, 31.96it/s, eval_psnr=16.1, total_loss=0.0108, train_psnr=21]
+Epoch 3:  80%|████████  | 40/50 [00:01&lt;00:00, 31.96it/s, eval_psnr=16.1, total_loss=0.0107, train_psnr=21]
+Epoch 3:  80%|████████  | 40/50 [00:01&lt;00:00, 31.96it/s, eval_psnr=16.1, total_loss=0.0107, train_psnr=21]
+Epoch 3:  80%|████████  | 40/50 [00:01&lt;00:00, 31.96it/s, eval_psnr=16.1, total_loss=0.0109, train_psnr=20.9]
+Epoch 3:  88%|████████▊ | 44/50 [00:01&lt;00:00, 31.96it/s, eval_psnr=16.1, total_loss=0.0109, train_psnr=20.9]
+Epoch 3:  88%|████████▊ | 44/50 [00:01&lt;00:00, 31.96it/s, eval_psnr=16.1, total_loss=0.0109, train_psnr=20.9]
+Epoch 3:  88%|████████▊ | 44/50 [00:01&lt;00:00, 31.96it/s, eval_psnr=16.1, total_loss=0.0107, train_psnr=21]
+Epoch 3:  88%|████████▊ | 44/50 [00:01&lt;00:00, 31.96it/s, eval_psnr=16.1, total_loss=0.0107, train_psnr=21]
+Epoch 3:  88%|████████▊ | 44/50 [00:01&lt;00:00, 31.96it/s, eval_psnr=16.1, total_loss=0.0109, train_psnr=20.9]
+Epoch 3:  88%|████████▊ | 44/50 [00:01&lt;00:00, 31.96it/s, eval_psnr=16.1, total_loss=0.0109, train_psnr=20.9]
+Epoch 3:  88%|████████▊ | 44/50 [00:01&lt;00:00, 31.96it/s, eval_psnr=16.1, total_loss=0.0108, train_psnr=20.9]
+Epoch 3:  88%|████████▊ | 44/50 [00:01&lt;00:00, 31.96it/s, eval_psnr=16.1, total_loss=0.0108, train_psnr=20.9]
+Epoch 3:  88%|████████▊ | 44/50 [00:01&lt;00:00, 31.96it/s, eval_psnr=16.1, total_loss=0.0106, train_psnr=21]
+Epoch 3:  96%|█████████▌| 48/50 [00:01&lt;00:00, 32.03it/s, eval_psnr=16.1, total_loss=0.0106, train_psnr=21]
+Epoch 3:  96%|█████████▌| 48/50 [00:01&lt;00:00, 32.03it/s, eval_psnr=16.1, total_loss=0.0106, train_psnr=21]
+Epoch 3:  96%|█████████▌| 48/50 [00:01&lt;00:00, 32.03it/s, eval_psnr=16.1, total_loss=0.0105, train_psnr=21.1]
+Epoch 3:  96%|█████████▌| 48/50 [00:01&lt;00:00, 32.03it/s, eval_psnr=16.1, total_loss=0.0105, train_psnr=21.1]
+Epoch 3:  96%|█████████▌| 48/50 [00:01&lt;00:00, 32.03it/s, eval_psnr=16.1, total_loss=0.0103, train_psnr=21.2]
+Epoch 3: 100%|██████████| 50/50 [00:01&lt;00:00, 32.04it/s, eval_psnr=16.1, total_loss=0.0103, train_psnr=21.2]
+
+  0%|          | 0/50 [00:00&lt;?, ?it/s]
+Epoch 4:   0%|          | 0/50 [00:00&lt;?, ?it/s]
+Epoch 4:   0%|          | 0/50 [00:00&lt;?, ?it/s, eval_psnr=17.1, total_loss=0.00656, train_psnr=21.8]
+Epoch 4:   0%|          | 0/50 [00:00&lt;?, ?it/s, eval_psnr=17.1, total_loss=0.00656, train_psnr=21.8]
+Epoch 4:   0%|          | 0/50 [00:00&lt;?, ?it/s, eval_psnr=17.1, total_loss=0.00719, train_psnr=21.4]
+Epoch 4:   0%|          | 0/50 [00:00&lt;?, ?it/s, eval_psnr=17.1, total_loss=0.00719, train_psnr=21.4]
+Epoch 4:   0%|          | 0/50 [00:00&lt;?, ?it/s, eval_psnr=17.1, total_loss=0.00797, train_psnr=21]
+Epoch 4:   0%|          | 0/50 [00:00&lt;?, ?it/s, eval_psnr=17.1, total_loss=0.00797, train_psnr=21]
+Epoch 4:   0%|          | 0/50 [00:00&lt;?, ?it/s, eval_psnr=17.1, total_loss=0.00977, train_psnr=20.3]
+Epoch 4:   8%|▊         | 4/50 [00:00&lt;00:01, 32.11it/s, eval_psnr=17.1, total_loss=0.00977, train_psnr=20.3]
+Epoch 4:   8%|▊         | 4/50 [00:00&lt;00:01, 32.11it/s, eval_psnr=17.1, total_loss=0.00977, train_psnr=20.3]
+Epoch 4:   8%|▊         | 4/50 [00:00&lt;00:01, 32.11it/s, eval_psnr=17.1, total_loss=0.0101, train_psnr=20.1]
+Epoch 4:   8%|▊         | 4/50 [00:00&lt;00:01, 32.11it/s, eval_psnr=17.1, total_loss=0.0101, train_psnr=20.1]
+Epoch 4:   8%|▊         | 4/50 [00:00&lt;00:01, 32.11it/s, eval_psnr=17.1, total_loss=0.00857, train_psnr=21.8]
+Epoch 4:   8%|▊         | 4/50 [00:00&lt;00:01, 32.11it/s, eval_psnr=17.1, total_loss=0.00857, train_psnr=21.8]
+Epoch 4:   8%|▊         | 4/50 [00:00&lt;00:01, 32.11it/s, eval_psnr=17.1, total_loss=0.00851, train_psnr=21.7]
+Epoch 4:   8%|▊         | 4/50 [00:00&lt;00:01, 32.11it/s, eval_psnr=17.1, total_loss=0.00851, train_psnr=21.7]
+Epoch 4:   8%|▊         | 4/50 [00:00&lt;00:01, 32.11it/s, eval_psnr=17.1, total_loss=0.00819, train_psnr=21.8]
+Epoch 4:  16%|█▌        | 8/50 [00:00&lt;00:01, 32.12it/s, eval_psnr=17.1, total_loss=0.00819, train_psnr=21.8]
+Epoch 4:  16%|█▌        | 8/50 [00:00&lt;00:01, 32.12it/s, eval_psnr=17.1, total_loss=0.00819, train_psnr=21.8]
+Epoch 4:  16%|█▌        | 8/50 [00:00&lt;00:01, 32.12it/s, eval_psnr=17.1, total_loss=0.00833, train_psnr=21.6]
+Epoch 4:  16%|█▌        | 8/50 [00:00&lt;00:01, 32.12it/s, eval_psnr=17.1, total_loss=0.00833, train_psnr=21.6]
+Epoch 4:  16%|█▌        | 8/50 [00:00&lt;00:01, 32.12it/s, eval_psnr=17.1, total_loss=0.00822, train_psnr=21.6]
+Epoch 4:  16%|█▌        | 8/50 [00:00&lt;00:01, 32.12it/s, eval_psnr=17.1, total_loss=0.00822, train_psnr=21.6]
+Epoch 4:  16%|█▌        | 8/50 [00:00&lt;00:01, 32.12it/s, eval_psnr=17.1, total_loss=0.00802, train_psnr=21.6]
+Epoch 4:  16%|█▌        | 8/50 [00:00&lt;00:01, 32.12it/s, eval_psnr=17.1, total_loss=0.00802, train_psnr=21.6]
+Epoch 4:  16%|█▌        | 8/50 [00:00&lt;00:01, 32.12it/s, eval_psnr=17.1, total_loss=0.00752, train_psnr=22.1]
+Epoch 4:  24%|██▍       | 12/50 [00:00&lt;00:01, 31.87it/s, eval_psnr=17.1, total_loss=0.00752, train_psnr=22.1]
+Epoch 4:  24%|██▍       | 12/50 [00:00&lt;00:01, 31.87it/s, eval_psnr=17.1, total_loss=0.00752, train_psnr=22.1]
+Epoch 4:  24%|██▍       | 12/50 [00:00&lt;00:01, 31.87it/s, eval_psnr=17.1, total_loss=0.00707, train_psnr=22.5]
+Epoch 4:  24%|██▍       | 12/50 [00:00&lt;00:01, 31.87it/s, eval_psnr=17.1, total_loss=0.00707, train_psnr=22.5]
+Epoch 4:  24%|██▍       | 12/50 [00:00&lt;00:01, 31.87it/s, eval_psnr=17.1, total_loss=0.00696, train_psnr=22.5]
+Epoch 4:  24%|██▍       | 12/50 [00:00&lt;00:01, 31.87it/s, eval_psnr=17.1, total_loss=0.00696, train_psnr=22.5]
+Epoch 4:  24%|██▍       | 12/50 [00:00&lt;00:01, 31.87it/s, eval_psnr=17.1, total_loss=0.00668, train_psnr=22.7]
+Epoch 4:  24%|██▍       | 12/50 [00:00&lt;00:01, 31.87it/s, eval_psnr=17.1, total_loss=0.00668, train_psnr=22.7]
+Epoch 4:  24%|██▍       | 12/50 [00:00&lt;00:01, 31.87it/s, eval_psnr=17.1, total_loss=0.00662, train_psnr=22.7]
+Epoch 4:  32%|███▏      | 16/50 [00:00&lt;00:01, 32.05it/s, eval_psnr=17.1, total_loss=0.00662, train_psnr=22.7]
+Epoch 4:  32%|███▏      | 16/50 [00:00&lt;00:01, 32.05it/s, eval_psnr=17.1, total_loss=0.00662, train_psnr=22.7]
+Epoch 4:  32%|███▏      | 16/50 [00:00&lt;00:01, 32.05it/s, eval_psnr=17.1, total_loss=0.00668, train_psnr=22.6]
+Epoch 4:  32%|███▏      | 16/50 [00:00&lt;00:01, 32.05it/s, eval_psnr=17.1, total_loss=0.00668, train_psnr=22.6]
+Epoch 4:  32%|███▏      | 16/50 [00:00&lt;00:01, 32.05it/s, eval_psnr=17.1, total_loss=0.0071, train_psnr=22.4]
+Epoch 4:  32%|███▏      | 16/50 [00:00&lt;00:01, 32.05it/s, eval_psnr=17.1, total_loss=0.0071, train_psnr=22.4]
+Epoch 4:  32%|███▏      | 16/50 [00:00&lt;00:01, 32.05it/s, eval_psnr=17.1, total_loss=0.00683, train_psnr=22.6]
+Epoch 4:  32%|███▏      | 16/50 [00:00&lt;00:01, 32.05it/s, eval_psnr=17.1, total_loss=0.00683, train_psnr=22.6]
+Epoch 4:  32%|███▏      | 16/50 [00:00&lt;00:01, 32.05it/s, eval_psnr=17.1, total_loss=0.00666, train_psnr=22.7]
+Epoch 4:  40%|████      | 20/50 [00:00&lt;00:00, 32.09it/s, eval_psnr=17.1, total_loss=0.00666, train_psnr=22.7]
+Epoch 4:  40%|████      | 20/50 [00:00&lt;00:00, 32.09it/s, eval_psnr=17.1, total_loss=0.00666, train_psnr=22.7]
+Epoch 4:  40%|████      | 20/50 [00:00&lt;00:00, 32.09it/s, eval_psnr=17.1, total_loss=0.00717, train_psnr=22.5]
+Epoch 4:  40%|████      | 20/50 [00:00&lt;00:00, 32.09it/s, eval_psnr=17.1, total_loss=0.00717, train_psnr=22.5]
+Epoch 4:  40%|████      | 20/50 [00:00&lt;00:00, 32.09it/s, eval_psnr=17.1, total_loss=0.00754, train_psnr=22.3]
+Epoch 4:  40%|████      | 20/50 [00:00&lt;00:00, 32.09it/s, eval_psnr=17.1, total_loss=0.00754, train_psnr=22.3]
+Epoch 4:  40%|████      | 20/50 [00:00&lt;00:00, 32.09it/s, eval_psnr=17.1, total_loss=0.00741, train_psnr=22.4]
+Epoch 4:  40%|████      | 20/50 [00:00&lt;00:00, 32.09it/s, eval_psnr=17.1, total_loss=0.00741, train_psnr=22.4]
+Epoch 4:  40%|████      | 20/50 [00:00&lt;00:00, 32.09it/s, eval_psnr=17.1, total_loss=0.00723, train_psnr=22.5]
+Epoch 4:  48%|████▊     | 24/50 [00:00&lt;00:00, 32.12it/s, eval_psnr=17.1, total_loss=0.00723, train_psnr=22.5]
+Epoch 4:  48%|████▊     | 24/50 [00:00&lt;00:00, 32.12it/s, eval_psnr=17.1, total_loss=0.00723, train_psnr=22.5]
+Epoch 4:  48%|████▊     | 24/50 [00:00&lt;00:00, 32.12it/s, eval_psnr=17.1, total_loss=0.00718, train_psnr=22.5]
+Epoch 4:  48%|████▊     | 24/50 [00:00&lt;00:00, 32.12it/s, eval_psnr=17.1, total_loss=0.00718, train_psnr=22.5]
+Epoch 4:  48%|████▊     | 24/50 [00:00&lt;00:00, 32.12it/s, eval_psnr=17.1, total_loss=0.00735, train_psnr=22.3]
+Epoch 4:  48%|████▊     | 24/50 [00:00&lt;00:00, 32.12it/s, eval_psnr=17.1, total_loss=0.00735, train_psnr=22.3]
+Epoch 4:  48%|████▊     | 24/50 [00:00&lt;00:00, 32.12it/s, eval_psnr=17.1, total_loss=0.00767, train_psnr=22.2]
+Epoch 4:  48%|████▊     | 24/50 [00:00&lt;00:00, 32.12it/s, eval_psnr=17.1, total_loss=0.00767, train_psnr=22.2]
+Epoch 4:  48%|████▊     | 24/50 [00:00&lt;00:00, 32.12it/s, eval_psnr=17.1, total_loss=0.00761, train_psnr=22.2]
+Epoch 4:  56%|█████▌    | 28/50 [00:00&lt;00:00, 32.12it/s, eval_psnr=17.1, total_loss=0.00761, train_psnr=22.2]
+Epoch 4:  56%|█████▌    | 28/50 [00:00&lt;00:00, 32.12it/s, eval_psnr=17.1, total_loss=0.00761, train_psnr=22.2]
+Epoch 4:  56%|█████▌    | 28/50 [00:00&lt;00:00, 32.12it/s, eval_psnr=17.1, total_loss=0.00757, train_psnr=22.2]
+Epoch 4:  56%|█████▌    | 28/50 [00:00&lt;00:00, 32.12it/s, eval_psnr=17.1, total_loss=0.00757, train_psnr=22.2]
+Epoch 4:  56%|█████▌    | 28/50 [00:00&lt;00:00, 32.12it/s, eval_psnr=17.1, total_loss=0.0074, train_psnr=22.3]
+Epoch 4:  56%|█████▌    | 28/50 [00:00&lt;00:00, 32.12it/s, eval_psnr=17.1, total_loss=0.0074, train_psnr=22.3]
+Epoch 4:  56%|█████▌    | 28/50 [00:00&lt;00:00, 32.12it/s, eval_psnr=17.1, total_loss=0.00723, train_psnr=22.5]
+Epoch 4:  56%|█████▌    | 28/50 [00:00&lt;00:00, 32.12it/s, eval_psnr=17.1, total_loss=0.00723, train_psnr=22.5]
+Epoch 4:  56%|█████▌    | 28/50 [00:00&lt;00:00, 32.12it/s, eval_psnr=17.1, total_loss=0.00727, train_psnr=22.4]
+Epoch 4:  64%|██████▍   | 32/50 [00:00&lt;00:00, 32.13it/s, eval_psnr=17.1, total_loss=0.00727, train_psnr=22.4]
+Epoch 4:  64%|██████▍   | 32/50 [00:00&lt;00:00, 32.13it/s, eval_psnr=17.1, total_loss=0.00727, train_psnr=22.4]
+Epoch 4:  64%|██████▍   | 32/50 [00:01&lt;00:00, 32.13it/s, eval_psnr=17.1, total_loss=0.00759, train_psnr=22.2]
+Epoch 4:  64%|██████▍   | 32/50 [00:01&lt;00:00, 32.13it/s, eval_psnr=17.1, total_loss=0.00759, train_psnr=22.2]
+Epoch 4:  64%|██████▍   | 32/50 [00:01&lt;00:00, 32.13it/s, eval_psnr=17.1, total_loss=0.00752, train_psnr=22.3]
+Epoch 4:  64%|██████▍   | 32/50 [00:01&lt;00:00, 32.13it/s, eval_psnr=17.1, total_loss=0.00752, train_psnr=22.3]
+Epoch 4:  64%|██████▍   | 32/50 [00:01&lt;00:00, 32.13it/s, eval_psnr=17.1, total_loss=0.00735, train_psnr=22.4]
+Epoch 4:  64%|██████▍   | 32/50 [00:01&lt;00:00, 32.13it/s, eval_psnr=17.1, total_loss=0.00735, train_psnr=22.4]
+Epoch 4:  64%|██████▍   | 32/50 [00:01&lt;00:00, 32.13it/s, eval_psnr=17.1, total_loss=0.00746, train_psnr=22.3]
+Epoch 4:  72%|███████▏  | 36/50 [00:01&lt;00:00, 32.10it/s, eval_psnr=17.1, total_loss=0.00746, train_psnr=22.3]
+Epoch 4:  72%|███████▏  | 36/50 [00:01&lt;00:00, 32.10it/s, eval_psnr=17.1, total_loss=0.00746, train_psnr=22.3]
+Epoch 4:  72%|███████▏  | 36/50 [00:01&lt;00:00, 32.10it/s, eval_psnr=17.1, total_loss=0.00734, train_psnr=22.4]
+Epoch 4:  72%|███████▏  | 36/50 [00:01&lt;00:00, 32.10it/s, eval_psnr=17.1, total_loss=0.00734, train_psnr=22.4]
+Epoch 4:  72%|███████▏  | 36/50 [00:01&lt;00:00, 32.10it/s, eval_psnr=17.1, total_loss=0.00835, train_psnr=22.2]
+Epoch 4:  72%|███████▏  | 36/50 [00:01&lt;00:00, 32.10it/s, eval_psnr=17.1, total_loss=0.00835, train_psnr=22.2]
+Epoch 4:  72%|███████▏  | 36/50 [00:01&lt;00:00, 32.10it/s, eval_psnr=17.1, total_loss=0.00823, train_psnr=22.2]
+Epoch 4:  72%|███████▏  | 36/50 [00:01&lt;00:00, 32.10it/s, eval_psnr=17.1, total_loss=0.00823, train_psnr=22.2]
+Epoch 4:  72%|███████▏  | 36/50 [00:01&lt;00:00, 32.10it/s, eval_psnr=17.1, total_loss=0.0082, train_psnr=22.2]
+Epoch 4:  80%|████████  | 40/50 [00:01&lt;00:00, 32.12it/s, eval_psnr=17.1, total_loss=0.0082, train_psnr=22.2]
+Epoch 4:  80%|████████  | 40/50 [00:01&lt;00:00, 32.12it/s, eval_psnr=17.1, total_loss=0.0082, train_psnr=22.2]
+Epoch 4:  80%|████████  | 40/50 [00:01&lt;00:00, 32.12it/s, eval_psnr=17.1, total_loss=0.00817, train_psnr=22.2]
+Epoch 4:  80%|████████  | 40/50 [00:01&lt;00:00, 32.12it/s, eval_psnr=17.1, total_loss=0.00817, train_psnr=22.2]
+Epoch 4:  80%|████████  | 40/50 [00:01&lt;00:00, 32.12it/s, eval_psnr=17.1, total_loss=0.0081, train_psnr=22.2]
+Epoch 4:  80%|████████  | 40/50 [00:01&lt;00:00, 32.12it/s, eval_psnr=17.1, total_loss=0.0081, train_psnr=22.2]
+Epoch 4:  80%|████████  | 40/50 [00:01&lt;00:00, 32.12it/s, eval_psnr=17.1, total_loss=0.00798, train_psnr=22.3]
+Epoch 4:  80%|████████  | 40/50 [00:01&lt;00:00, 32.12it/s, eval_psnr=17.1, total_loss=0.00798, train_psnr=22.3]
+Epoch 4:  80%|████████  | 40/50 [00:01&lt;00:00, 32.12it/s, eval_psnr=17.1, total_loss=0.00786, train_psnr=22.4]
+Epoch 4:  88%|████████▊ | 44/50 [00:01&lt;00:00, 31.80it/s, eval_psnr=17.1, total_loss=0.00786, train_psnr=22.4]
+Epoch 4:  88%|████████▊ | 44/50 [00:01&lt;00:00, 31.80it/s, eval_psnr=17.1, total_loss=0.00786, train_psnr=22.4]
+Epoch 4:  88%|████████▊ | 44/50 [00:01&lt;00:00, 31.80it/s, eval_psnr=17.1, total_loss=0.00775, train_psnr=22.4]
+Epoch 4:  88%|████████▊ | 44/50 [00:01&lt;00:00, 31.80it/s, eval_psnr=17.1, total_loss=0.00775, train_psnr=22.4]
+Epoch 4:  88%|████████▊ | 44/50 [00:01&lt;00:00, 31.80it/s, eval_psnr=17.1, total_loss=0.00772, train_psnr=22.4]
+Epoch 4:  88%|████████▊ | 44/50 [00:01&lt;00:00, 31.80it/s, eval_psnr=17.1, total_loss=0.00772, train_psnr=22.4]
+Epoch 4:  88%|████████▊ | 44/50 [00:01&lt;00:00, 31.80it/s, eval_psnr=17.1, total_loss=0.00767, train_psnr=22.4]
+Epoch 4:  88%|████████▊ | 44/50 [00:01&lt;00:00, 31.80it/s, eval_psnr=17.1, total_loss=0.00767, train_psnr=22.4]
+Epoch 4:  88%|████████▊ | 44/50 [00:01&lt;00:00, 31.80it/s, eval_psnr=17.1, total_loss=0.00766, train_psnr=22.4]
+Epoch 4:  96%|█████████▌| 48/50 [00:01&lt;00:00, 31.92it/s, eval_psnr=17.1, total_loss=0.00766, train_psnr=22.4]
+Epoch 4:  96%|█████████▌| 48/50 [00:01&lt;00:00, 31.92it/s, eval_psnr=17.1, total_loss=0.00766, train_psnr=22.4]
+Epoch 4:  96%|█████████▌| 48/50 [00:01&lt;00:00, 31.92it/s, eval_psnr=17.1, total_loss=0.00812, train_psnr=22.3]
+Epoch 4:  96%|█████████▌| 48/50 [00:01&lt;00:00, 31.92it/s, eval_psnr=17.1, total_loss=0.00812, train_psnr=22.3]
+Epoch 4:  96%|█████████▌| 48/50 [00:01&lt;00:00, 31.92it/s, eval_psnr=17.1, total_loss=0.00815, train_psnr=22.2]
+Epoch 4: 100%|██████████| 50/50 [00:01&lt;00:00, 32.02it/s, eval_psnr=17.1, total_loss=0.00815, train_psnr=22.2]
+
+ArtifactRemoval(
+  (backbone_net): UNet(
+    (Maxpool): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+    (Conv1): Sequential(
+      (0): Conv2d(3, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): ReLU(inplace=True)
+      (2): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (3): ReLU(inplace=True)
+    )
+    (Conv2): Sequential(
+      (0): Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): ReLU(inplace=True)
+      (2): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (3): ReLU(inplace=True)
+    )
+    (Conv3): Sequential(
+      (0): Conv2d(128, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): ReLU(inplace=True)
+      (2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (3): ReLU(inplace=True)
+    )
+    (Up3): Sequential(
+      (0): Upsample(scale_factor=2.0, mode=&#39;nearest&#39;)
+      (1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (2): ReLU(inplace=True)
+    )
+    (Up_conv3): Sequential(
+      (0): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): ReLU(inplace=True)
+      (2): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (3): ReLU(inplace=True)
+    )
+    (Up2): Sequential(
+      (0): Upsample(scale_factor=2.0, mode=&#39;nearest&#39;)
+      (1): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (2): ReLU(inplace=True)
+    )
+    (Up_conv2): Sequential(
+      (0): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): ReLU(inplace=True)
+      (2): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (3): ReLU(inplace=True)
+    )
+    (Conv_1x1): Conv2d(64, 3, kernel_size=(1, 1), stride=(1, 1))
+  )
+)
+</pre></div>
+</div>
+</section>
+<section id="test-the-network">
+<h2>Test the network<a class="headerlink" href="#test-the-network" title="Link to this heading"></a></h2>
+<p>We can now test the trained network using the <a class="reference internal" href="../../stubs/deepinv.test.html#deepinv.test" title="deepinv.test"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.test()</span></code></a> function.</p>
+<p>The testing function will compute test_psnr metrics and plot and save the results.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://docs.python.org/3.4/library/functions.html#bool" title="builtins.bool" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">plot_images</span></a> <span class="o">=</span> <span class="kc">True</span>
+<a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">method</span></a> <span class="o">=</span> <span class="s2">&quot;artifact_removal&quot;</span>
+
+<a href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.float64" title="numpy.float64" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-attribute"><span class="n">test_psnr</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.float64" title="numpy.float64" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-attribute"><span class="n">test_std_psnr</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.float64" title="numpy.float64" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-attribute"><span class="n">init_psnr</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.float64" title="numpy.float64" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-attribute"><span class="n">init_std_psnr</span></a> <span class="o">=</span> <span class="n">test</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+    <a href="https://pytorch.org/docs/2.0/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">test_dataloader</span></a><span class="o">=</span><a href="https://pytorch.org/docs/2.0/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">test_dataloader</span></a><span class="p">,</span>
+    <span class="n">physics</span><span class="o">=</span><span class="n">physics</span><span class="p">,</span>
+    <a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">,</span>
+    <a href="https://docs.python.org/3.4/library/functions.html#bool" title="builtins.bool" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">plot_images</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/functions.html#bool" title="builtins.bool" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">plot_images</span></a><span class="p">,</span>
+    <span class="n">save_folder</span><span class="o">=</span><a href="https://docs.python.org/3.4/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">RESULTS_DIR</span></a> <span class="o">/</span> <a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">method</span></a> <span class="o">/</span> <a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">operation</span></a> <span class="o">/</span> <a href="https://docs.python.org/3.4/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">test_dataset_name</span></a><span class="p">,</span>
+    <a href="https://docs.python.org/3.4/library/functions.html#bool" title="builtins.bool" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">verbose</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/functions.html#bool" title="builtins.bool" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">verbose</span></a><span class="p">,</span>
+    <a href="https://docs.python.org/3.4/library/functions.html#bool" title="builtins.bool" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">wandb_vis</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/functions.html#bool" title="builtins.bool" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">wandb_vis</span></a><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_demo_train_inpainting_001.png" srcset="../../_images/sphx_glr_demo_train_inpainting_001.png" alt="Input, No learning, Recons., GT" class = "sphx-glr-single-img"/><div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Processing data of operator 1 out of 1
+
+  0%|          | 0/3 [00:00&lt;?, ?it/s]
+ 33%|███▎      | 1/3 [00:01&lt;00:02,  1.08s/it]
+100%|██████████| 3/3 [00:01&lt;00:00,  2.73it/s]
+Test PSNR: No learning rec.: 6.66+-1.18 dB | Model: 17.23+-1.26 dB.
+</pre></div>
+</div>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 8.484 seconds)</p>
+<div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-basics-demo-train-inpainting-py">
+<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/91baf28a6470ebe8c48366815f892ec5/demo_train_inpainting.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">demo_train_inpainting.ipynb</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/c92850c07b727ac06fc347bc807db776/demo_train_inpainting.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">demo_train_inpainting.py</span></code></a></p>
+</div>
+</div>
+<p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="demo_physics_tour.html" class="btn btn-neutral float-left" title="A tour of forward sensing operators" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="demo_custom_prior.html" class="btn btn-neutral float-right" title="Image deblurring with custom deep explicit prior." accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>
